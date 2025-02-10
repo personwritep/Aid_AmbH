@@ -10,6 +10,7 @@
 // @match        https://blog.ameba.jp/ucs/comment/commentlist*
 // @match        https://blog.ameba.jp/ucs/iine/*
 // @match        https://msg.ameba.jp/*
+// @icon        https://www.google.com/s2/favicons?sz=64&domain=ameblo.jp
 // @noframes
 // @grant        none
 // @updateURL        https://github.com/personwritep/Aid_AmbH/raw/main/Aid_AmbH.user.js
