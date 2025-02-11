@@ -346,8 +346,9 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
 
 
             function aid_comm_remove(){
-                let aid_comm_con=commWrapp.querySelector('.aid_comm_con');
-                aid_comm_con.remove();
+                let aid_comm_con=document.querySelector('.aid_comm_con');
+                if(aid_comm_con){
+                    aid_comm_con.remove(); }
 
                 let aid_comm=document.querySelector('.aid_comm');
                 if(aid_comm){
