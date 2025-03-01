@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Aid AmbH
 // @namespace        http://tampermonkey.net/
-// @version        3.9
+// @version        4.0
 // @description        「HOME」「ブログ」のリンク動作を改善
 // @author        Ameba blog User
 // @match        https://ameblo.jp/*
@@ -173,7 +173,9 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
 
             if(skin_type==0){ // 新タイプスキン
                 aid_comm+=
-                    '.skin-borderLoud, .skin-borderQuiet { border-color: #888; } '+
+                    '.skin-borderLoud, .skin-borderQuiet { border: none !important; } '+ // border 🔴
+                    '[data-uranus-component="commentsList"]>li { '+ // border 🔴
+                    'border-bottom: 1px dotted #888; } '+ // border 🔴
                     '#commentsHeader { padding-bottom: 20px; margin: 0 15px 20px 0; } '+
                     '#commentsList { margin: 0; } '+
                     '[data-uranus-component="mainWidgetFooter"] { padding: 0; } '+
