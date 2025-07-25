@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Aid AmbH
 // @namespace        http://tampermonkey.net/
-// @version        4.0
+// @version        4.1
 // @description        「HOME」「ブログ」のリンク動作を改善
 // @author        Ameba blog User
 // @match        https://ameblo.jp/*
@@ -126,7 +126,7 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
                 skin_type=2; }}
 
 
-        if(location.hash=='#cbox'){ // #cbox付きURLで開かれた場合
+        if(location.hash=='#cboxad'){ // #cboxad付きURLで開かれた場合
             let aid_comm=
                 '<style class="aid_comm">'+
                 'html { scroll-behavior: unset; overflow-y: hidden; } '+
@@ -138,14 +138,23 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
                 'top: 80px; left: calc(50% - 390px); width: 712px; margin: 0; '+
                 'padding:20px 25px 20px 40px !important; color: #000; background: #fff; '+
                 'border: 2px solid #aaa; box-shadow: 0 0 0 100vw rgb(0 0 0 / 25%); } '+
+
                 '.comm_wrapp *:not([data-uranus-icon]) { '+
-                'font: 16px Meiryo; color: #000 !important; } '+
-                '.comm_wrapp .clear_reset { position: absolute; top: 21px; left: 710px; '+
-                'height: 27px; width: 27px; padding: 0 5px; cursor: pointer; z-index: 1; } '+
-                '.comm_wrapp .color_sw, .comm_wrapp .color_box { cursor: pointer; '+
-                'position: absolute; top: 21px; left: 670px; height: 27px; width: 27px; } '+
+                'color: #000 !important; } '+
+
+                'button.commentWinOpenBtn { '+
+                'font: 16px Meiryo !important; padding-top: 2px; '+
+                'position: absolute; top: 20px; left: 300px; height: 28px; z-index: 1; '+
+                'border: 1px solid #777; border-radius: 3px; background: #eceff1; '+
+                'display: flex; align-items: center; justify-content: center; } '+
+
+                '.comm_wrapp .color_sw, .comm_wrapp .color_box, .comm_wrapp .clear_reset { '+
+                'font: 16px Meiryo !important; padding: 1px 0; '+
+                'position: absolute; top: 21px; height: 27px; width: 27px; cursor: pointer; } '+
+                '.comm_wrapp .color_sw, .comm_wrapp .color_box { left: 670px; } '+
                 '.comm_wrapp .color_sw { z-index: 2; } '+
                 '.comm_wrapp .color_box { z-index: 1; } '+
+                '.comm_wrapp .clear_reset { left: 710px; padding: 0 5px; z-index: 1; } '+
 
                 '[data-uranus-component="mainWidgetBody"], '+
                 '#comment_module, #commentListUl { '+
@@ -177,13 +186,9 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
                     '[data-uranus-component="commentsList"]>li { '+ // border 🔴
                     'border-bottom: 1px dotted #888; } '+ // border 🔴
                     '#commentsHeader { padding-bottom: 20px; margin: 0 15px 20px 0; } '+
+                    '#commentsHeader h4 { font: 16px Meiryo !important; } '+
                     '#commentsList { margin: 0; } '+
                     '[data-uranus-component="mainWidgetFooter"] { padding: 0; } '+
-                    '[data-uranus-component="mainWidgetFooter"] .commentWinOpenBtn { '+
-                    'position: absolute; top: 20px; left: 300px; height: 28px; z-index: 1; '+
-                    'border: 1px solid #777; border-radius: 3px; background: #eceff1; } '+
-                    '[data-uranus-component="mainWidgetFooter"] span { '+
-                    'vertical-align: -9px; }'+
                     '</style>'; }
 
             if(skin_type==1){ // 旧タイプスキン
@@ -192,20 +197,15 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
                     '.skinBorderHr { flex-shrink: 0; } '+
                     '.commentOpenArea.skinWeakColor { display: none; } '+
                     '.commentTitleArea.skinBorderHr { margin: 0 15px 20px 0; } '+
-                    'h1.commentTitle { margin: 0 15px 16px 0; } '+
+                    'h1.commentTitle { font: 16px Meiryo !important; margin: 0 15px 16px 0; } '+
                     '.commentBtnArea { padding: 0; } '+
-                    '.commentBtnArea .commentWinOpenBtn { '+
-                    'position: absolute; top: 20px; left: 300px; height: 28px; z-index: 1; '+
-                    'border: 1px solid #777; border-radius: 3px; background: #eceff1; } '+
-                    '.commentBtnArea span { padding: 3px 0 0; vertical-align: -4px; }'+
                     '</style>'; }
 
             if(skin_type==2){ //レトロタイプスキン
                 aid_comm+=
                     '#comment_module p.list { display: none; } '+
+                    '#comment_module h3.title { font: 16px Meiryo !important; } '+
                     '#comment_module .each_comment { margin: 0; padding: 20px 0; } '+
-                    '#comment_module .commentWinOpenBtn { '+
-                    'order: -1; height: 28px; margin: 0 auto; } '+
                     '</style>'; }
 
             if(!document.querySelector('.aid_comm') && once==0){
@@ -244,19 +244,12 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
             let commWrapp=document.querySelector('.comm_wrapp');
             if(commWrapp){
                 if(!commWrapp.querySelector('.aid_comm_con')){
-                    if(skin_type!=2){
-                        let control=
-                            '<div class="aid_comm_con">'+
-                            '<input type="button" class="clear_reset" value="✖">'+
-                            '<input type="button" class="color_sw" title="背景色を指定する">'+
-                            '<input type="color" class="color_box"></div>';
-                        commWrapp.insertAdjacentHTML('beforeend', control); }
-                    else{
-                        let control=
-                            '<div class="aid_comm_con">'+
-                            '<input type="button" class="clear_reset" value="✖">'+
-                            '</div>';
-                        commWrapp.insertAdjacentHTML('beforeend', control); }}
+                    let control=
+                        '<div class="aid_comm_con">'+
+                        '<input type="button" class="clear_reset" value="✖">'+
+                        '<input type="button" class="color_sw" title="背景色を指定する" value="16">'+
+                        '<input type="color" class="color_box"></div>';
+                    commWrapp.insertAdjacentHTML('beforeend', control); }
 
 
 
@@ -313,11 +306,59 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
 
 
 
+                if(color_sw){
+                    let fontsz=localStorage.getItem('aid_ambh_fontsz'); // ストレージから取得
+                    if(fontsz==null || fontsz>20 || fontsz<13){
+                        fontsz='16'; // デフォルトフォントサイズ
+                        localStorage.setItem('aid_ambh_fontsz', fontsz); }
+
+                    set_fontsz(fontsz);
+
+                    color_sw.onwheel=function(event){ // マスウホイールで設定
+                        if(color_sw_check()){
+                            if(event.deltaY<0 && fontsz<20){
+                                event.preventDefault();
+                                event.stopImmediatePropagation();
+                                fontsz=fontsz/1 +1;
+                                color_sw.value=fontsz;
+                                localStorage.setItem('aid_ambh_fontsz', fontsz); }
+
+                            else if(event.deltaY>0 && fontsz>13){
+                                event.preventDefault();
+                                event.stopImmediatePropagation();
+                                fontsz=fontsz/1 -1;
+                                color_sw.value=fontsz;
+                                localStorage.setItem('aid_ambh_fontsz', fontsz); }
+
+                            set_fontsz(fontsz); }}
+
+
+                    function color_sw_check(){
+                        let color_sw=document.querySelector('.color_sw');
+                        if(color_sw){
+                            return true; }}
+
+
+                    function set_fontsz(fontsz){
+                        let sz_style=
+                            '<style class="aid_comm_sz">'+
+                            '#commentsList *, #commentListUl *, .each_comment * { font: '+
+                            fontsz +'px Meiryo; }'+
+                            '<style>';
+
+                        if(document.querySelector('.aid_comm_sz')){
+                            document.querySelector('.aid_comm_sz').remove(); }
+                        document.documentElement.insertAdjacentHTML('beforeend', sz_style); }
+
+                } // if(color_sw)
+
+
+
                 let clear_reset=commWrapp.querySelector('.clear_reset');
                 if(clear_reset){
                     clear_reset.onclick=function(){
                         aid_comm_remove();
-                        history.pushState('0', '0', location.href.replace(/#cbox/, '')); }} //「#cbox」削除
+                        history.pushState('0', '0', location.href.replace(/#cboxad/, '')); }} //「#cboxad」削除
 
 
                 let commMore=
@@ -864,8 +905,8 @@ if(location.href=='https://www.ameba.jp/home'){ //「HOME」画面の場合
                         let href=notifi_link[k].getAttribute('href');
                         notifi_link[k].setAttribute('target', '_blank'); // 全て別タブで開く設定に変更
 
-                        if(href.match(/comment-/) && !href.match(/#cbox/)){ //「コメント承認・返信」
-                            notifi_link[k].setAttribute('href', href+'#cbox');
+                        if(href.match(/comment-/) && !href.match(/#cboxad/)){ //「コメント承認・返信」
+                            notifi_link[k].setAttribute('href', href+'#cboxad');
                             notifi_link[k].style.boxShadow=
                                 'inset -2px 0 0 2px #fff, inset 8px 0 0 #cfd8dc'; }
 
@@ -903,7 +944,7 @@ if(location.href=='https://www.ameba.jp/home'){ //「HOME」画面の場合
 
                         let M_icon=HCCI[k].querySelector('.HomeChecklist_Article_Meta_Icon');
                         if(M_icon){
-                            window.open(href+'#cbox', '_blank');
+                            window.open(href+'#cboxad', '_blank');
                             setTimeout(()=>{
                                 all_item_bar(0);
                                 all_item_bar_s(0);
@@ -953,7 +994,7 @@ if(location.href=='https://www.ameba.jp/home'){ //「HOME」画面の場合
                 if(event.shiftKey){
                     event.preventDefault();
                     let href=HBCC_link[k].getAttribute('href');
-                    window.open(href+'#cbox', '_blank');
+                    window.open(href+'#cboxad', '_blank');
                     setTimeout(()=>{
                         all_item_bar(0);
                         all_item_bar_s(0);
@@ -977,7 +1018,7 @@ if(location.href=='https://www.ameba.jp/home'){ //「HOME」画面の場合
                 if(event.shiftKey){
                     event.preventDefault();
                     let href=stuff_link.getAttribute('href');
-                    window.open(href+'#cbox', '_blank');
+                    window.open(href+'#cboxad', '_blank');
                     setTimeout(()=>{
                         all_item_bar(0);
                         all_item_bar_s(0);
@@ -1047,8 +1088,8 @@ if(location.href=='https://www.ameba.jp/notifications'){ //「お知らせ」画
         let notifi_link=document.querySelectorAll('.NotificationListItem');
         for(let k=0; k<notifi_link.length; k++){
             let href=notifi_link[k].getAttribute('href');
-            if(href.match(/comment-/) && !href.match(/#cbox/)){ //「コメント承認」
-                notifi_link[k].setAttribute('href', href+'#cbox');
+            if(href.match(/comment-/) && !href.match(/#cboxad/)){ //「コメント承認」
+                notifi_link[k].setAttribute('href', href+'#cboxad');
                 notifi_link[k].setAttribute('target', '_blank');
                 notifi_link[k].style.boxShadow='inset -2px 0 0 2px #fff, inset 8px 0 0 #cfd8dc'; }}
 
@@ -1080,7 +1121,7 @@ if(location.pathname.startsWith('/ucs/comment/commentlist')){ //「コメント�
             if(event.shiftKey){
                 event.preventDefault();
                 let href=UL_link[k].getAttribute('href');
-                window.open(href+'#cbox', null, '_blank');
+                window.open(href+'#cboxad', null, '_blank');
                 setTimeout(()=>{
                     all_item_rest();
                 }, 1000); }}}
