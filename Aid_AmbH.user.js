@@ -247,7 +247,7 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
                     let control=
                         '<div class="aid_comm_con">'+
                         '<input type="button" class="clear_reset" value="✖">'+
-                        '<input type="button" class="color_sw" title="背景色を指定する" value="16">'+
+                        '<input type="button" class="color_sw" title="背景色を指定する" value="">'+
                         '<input type="color" class="color_box"></div>';
                     commWrapp.insertAdjacentHTML('beforeend', control); }
 
@@ -340,6 +340,7 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
 
 
                     function set_fontsz(fontsz){
+                        color_sw.value=fontsz;
                         let sz_style=
                             '<style class="aid_comm_sz">'+
                             '#commentsList *, #commentListUl *, .each_comment * { font: '+
