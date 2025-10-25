@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Aid AmbH
 // @namespace        http://tampermonkey.net/
-// @version        4.1
+// @version        4.2
 // @description        「HOME」「ブログ」のリンク動作を改善
 // @author        Ameba blog User
 // @match        https://ameblo.jp/*
@@ -28,6 +28,310 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
     main();
 
     function main(){
+
+        let ua=0;
+        let agent=window.navigator.userAgent.toLowerCase();
+        if(agent.indexOf('firefox') > -1){ ua=1; } // Firefoxの場合のフラッグ
+
+        let skin_type=0;
+        let skin_code=document.documentElement.getAttribute('data-base-skin-code');
+        if(skin_code){
+            if(skin_code=="uranus"){ // 新タイプ
+                skin_type=0; }
+            else if(skin_code=="new"){ // 旧タイプ
+                skin_type=1; }
+            else if(skin_code=="default"){ // レトロタイプ
+                skin_type=2; }}
+
+
+
+        if(location.hash=='#cbox'){ // #cbox付きURLで開かれた場合
+            if(once==0){
+                let main=document.querySelector('#main');
+                if(main){
+                    main.scrollIntoView({ block: "end" }); } // 本文末尾へスクロール
+
+                let retry=0;
+                let interval=setInterval(wait_target, 100);
+                function wait_target(){
+                    retry++;
+                    if(retry>100){ // リトライ制限 20回 2sec
+                        clearInterval(interval);
+                        once=1;
+                        aid_comm_remove(); } //「コメント欄」が無い場合は操作を停止
+                    let target=document.querySelector('#cbox'); // 監視 target
+                    if(target){
+                        clearInterval(interval);
+                        once=1; // コメント欄の取得
+                        com_disp(target); }}}
+
+        } // #cbox付きURLで開かれた場合
+
+
+
+        let sw=document.querySelector('.commentLink');
+        if(sw){
+            sw.addEventListener('click', function(event){
+                let cbox=document.querySelector('#cbox');
+                if(cbox){
+                    com_disp(cbox); } // 独自のコメントパネルを表示
+                else{
+                    sw.click(); }}); } // コメント欄の無いページからデフォルトのリンク移動
+
+
+
+        function aid_env(){
+            let ac_style=
+                '<style class="aid_comm">'+
+                'html { scroll-behavior: unset; overflow-y: hidden; } '+
+                'body { zoom: unset !important; '+
+                'transform: unset !important; width: unset !important; } '+
+                '.comm_wrapp { '+
+                'display: flex; flex-direction: column; '+
+                'position: fixed !important; z-index: 1999 !important; max-height: 80vh; '+
+                'top: 80px; left: calc(50% - 390px); width: 712px; margin: 0; '+
+                'padding:20px 25px 20px 40px !important; color: #000; background: #fff; '+
+                'border: 1px solid #aaa; box-shadow: 0 0 0 100vw rgb(0 0 0 / 25%); } '+
+
+                '.comm_wrapp *:not([data-uranus-icon]) { '+
+                'color: #000 !important; } '+
+
+                'button.commentWinOpenBtn { '+
+                'font: 16px Meiryo !important; padding-top: 2px; '+
+                'position: absolute; top: 20px; left: 300px; height: 28px; z-index: 1; '+
+                'border: 1px solid #777; border-radius: 3px; background: #eceff1; '+
+                'display: flex; align-items: center; justify-content: center; } '+
+
+                '.comm_wrapp .color_sw, .comm_wrapp .color_box, .comm_wrapp .clear_reset { '+
+                'font: 16px Meiryo !important; padding: 1px 0; '+
+                'position: absolute; top: 21px; height: 27px; width: 27px; cursor: pointer; } '+
+                '.comm_wrapp .color_sw, .comm_wrapp .color_box { left: 670px; } '+
+                '.comm_wrapp .color_sw { z-index: 2; } '+
+                '.comm_wrapp .color_box { z-index: 1; } '+
+                '.comm_wrapp .clear_reset { left: 710px; padding: 0 5px; z-index: 1; } '+
+
+                '[data-uranus-component="mainWidgetBody"], '+
+                '#comment_module, #commentListUl { '+
+                'overflow-y: scroll; overflow-x: hidden; overscroll-behavior-y: contain; padding: 0 0 1px; } '+
+                '[data-uranus-component="mainWidgetBody"]::-webkit-scrollbar, '+
+                '#comment_module::-webkit-scrollbar, '+
+                '#commentListUl::-webkit-scrollbar { width: 15px; } '+
+                '[data-uranus-component="mainWidgetBody"]::-webkit-scrollbar-thumb, '+
+                '#comment_module::-webkit-scrollbar-thumb, '+
+                '#commentListUl::-webkit-scrollbar-thumb { '+
+                'background: #ddd; box-shadow: inset 10px 0 0 0 #fff; } '+
+                '[data-uranus-component="mainWidgetBody"]::-webkit-scrollbar-thumb:hover, '+
+                '#comment_module::-webkit-scrollbar-thumb:hover, '+
+                '#commentListUl::-webkit-scrollbar-thumb:hover { '+
+                'background: #ddd; box-shadow: inset 2px 0 0 0 #fff; } '+
+                '[data-uranus-component="mainWidgetBody"]::-webkit-scrollbar-track, '+
+                '#comment_module::-webkit-scrollbar-track, '+
+                '#commentListUl::-webkit-scrollbar-track { background: transparent; } ';
+
+            if(ua==1){
+                ac_style+=
+                    '[data-uranus-component="mainWidgetBody"], '+
+                    '#comment_module, #commentListUl { '+
+                    'padding-right: 15px; scrollbar-color: #aaa transparent; } '; }
+
+            if(skin_type==0){ // 新タイプスキン
+                ac_style+=
+                    '.skin-borderLoud, .skin-borderQuiet { border: none !important; } '+ // border 🔴
+                    '[data-uranus-component="commentsList"]>li { '+ // border 🔴
+                    'border-bottom: 1px dotted #888; } '+ // border 🔴
+                    '#commentsHeader { padding-bottom: 20px; margin: 0 15px 0 0; } '+
+                    '#commentsHeader h4 { font: 16px Meiryo !important; } '+
+                    '#commentsList { margin: 0; } '+
+                    '[data-uranus-component="mainWidgetFooter"] { padding: 0; } '+
+                    '</style>'; }
+
+            if(skin_type==1){ // 旧タイプスキン
+                ac_style+=
+                    '.skinBorderHr, .skinBorderList li { border-color: #888; } '+
+                    '.skinBorderHr { flex-shrink: 0; } '+
+                    '.commentOpenArea.skinWeakColor { display: none; } '+
+                    '.commentTitleArea.skinBorderHr { margin: 0 15px 0 0; } '+
+                    'h1.commentTitle { font: 16px Meiryo !important; margin: 0 15px 16px 0; } '+
+                    '.commentBtnArea { padding: 0; } '+
+                    '</style>'; }
+
+            if(skin_type==2){ //レトロタイプスキン
+                ac_style+=
+                    '#comment_module p.list { display: none; } '+
+                    '#comment_module h3.title { font: 16px Meiryo !important; } '+
+                    '#comment_module .each_comment { margin: 0; padding: 20px 0; } '+
+                    '</style>'; }
+
+            if(!document.querySelector('.aid_comm')){
+                document.documentElement.insertAdjacentHTML('beforeend', ac_style); }
+
+        } // aid_env()
+
+
+
+        function com_disp(cbox){
+            aid_env();
+
+
+            let commMore=
+                document.querySelector('[data-uranus-component="commentsMoreButton"]');
+            if(commMore){
+                commMore.click(); } // コメント欄の全展開
+
+            let commMore2=
+                document.querySelector('#commentListMoreLink');
+            if(commMore2){
+                commMore2.click(); } // コメント欄の全展開
+
+
+            if(skin_type==0){ // 新タイプスキン
+                let cbox_wrapp=cbox.closest('[data-uranus-component="mainWidget"]');
+                cbox_wrapp.classList.add('comm_wrapp'); }
+            else if(skin_type==1){ // 旧タイプスキン
+                document.querySelector('.commentArea').classList.add('comm_wrapp'); }
+            else if(skin_type==2){ // レトロタイプスキン
+                document.querySelector('#comment_module').classList.add('comm_wrapp'); }
+
+
+            let commWrapp=document.querySelector('.comm_wrapp');
+            if(commWrapp){
+                if(!commWrapp.querySelector('.aid_comm_con')){
+                    let control=
+                        '<div class="aid_comm_con">'+
+                        '<input type="button" class="clear_reset" value="✖">'+
+                        '<input type="button" class="color_sw" title="Click:背景色を指定　Wheel:文字サイズ" value="">'+
+                        '<input type="color" class="color_box"></div>';
+                    commWrapp.insertAdjacentHTML('beforeend', control); }
+
+
+
+                let color_sw=commWrapp.querySelector('.color_sw');
+                if(color_sw){
+                    let sw_col=localStorage.getItem('aid_ambh_sw_col'); // ストレージから取得
+                    if(sw_col==null){
+                        sw_col='transparent'; // デフォルト背景色
+                        localStorage.setItem('aid_ambh_sw_col', sw_col); }
+
+                    set_color(sw_col);
+
+                    color_sw.onclick=function(event){
+                        if(!event.ctrlKey){
+                            let color_box=commWrapp.querySelector('.color_box');
+                            color_box.value=sw_col;
+                            color_box.click();
+
+                            color_box.oninput=function(){
+                                set_color(color_box.value);
+                                localStorage.setItem('aid_ambh_sw_col', color_box.value); }}
+
+                        else if(event.ctrlKey){ // 背景色指定をスキン指定に
+                            let ok=confirm("ブログスキンのコメント背景色を適用します");
+                            if(ok){
+                                sw_col='transparent'; // 透明
+                                set_color(sw_col);
+                                localStorage.setItem('aid_ambh_sw_col', sw_col); }}}
+
+
+                    function set_color(col){
+                        if(document.querySelector('.aid_comm_col')){
+                            document.querySelector('.aid_comm_col').remove(); }
+
+                        let color_style;
+                        if(col!='transparent'){
+                            if(skin_type==0){ // 新タイプスキン
+                                color_style='<style class="aid_comm_col">'+
+                                    '.skin-bgQuiet { background: '+ col +'; } '+
+                                    '.comm_wrapp .color_sw { box-shadow: inset 0 0 0 20px '+ col +'; }'+
+                                    '</style>'; }
+                            else if(skin_type==1){ // 旧タイプスキン
+                                color_style='<style class="aid_comm_col">'+
+                                    '.skinStrongBgColor { background: '+ col +'; } '+
+                                    '.comm_wrapp .color_sw { box-shadow: inset 0 0 0 20px '+ col +'; }'+
+                                    '</style>' }
+
+                            document.body.insertAdjacentHTML('beforeend', color_style); }}
+
+                } // if(color_sw)
+
+
+
+                if(color_sw){
+                    let fontsz=localStorage.getItem('aid_ambh_fontsz'); // ストレージから取得
+                    if(fontsz==null || fontsz>20 || fontsz<13){
+                        fontsz='16'; // デフォルトフォントサイズ
+                        localStorage.setItem('aid_ambh_fontsz', fontsz); }
+
+                    set_fontsz(fontsz);
+
+                    color_sw.onwheel=function(event){ // マスウホイールで設定
+                        if(color_sw_check()){
+                            if(event.deltaY<0 && fontsz<20){
+                                event.preventDefault();
+                                event.stopImmediatePropagation();
+                                fontsz=fontsz/1 +1;
+                                color_sw.value=fontsz;
+                                localStorage.setItem('aid_ambh_fontsz', fontsz); }
+
+                            else if(event.deltaY>0 && fontsz>13){
+                                event.preventDefault();
+                                event.stopImmediatePropagation();
+                                fontsz=fontsz/1 -1;
+                                color_sw.value=fontsz;
+                                localStorage.setItem('aid_ambh_fontsz', fontsz); }
+
+                            set_fontsz(fontsz); }}
+
+
+                    function color_sw_check(){
+                        let color_sw=document.querySelector('.color_sw');
+                        if(color_sw){
+                            return true; }}
+
+
+                    function set_fontsz(fontsz){
+                        color_sw.value=fontsz;
+                        let sz_style=
+                            '<style class="aid_comm_sz">'+
+                            '#commentsList *, #commentListUl *, .each_comment * { font: '+
+                            fontsz +'px Meiryo; }'+
+                            '<style>';
+
+                        if(document.querySelector('.aid_comm_sz')){
+                            document.querySelector('.aid_comm_sz').remove(); }
+                        document.documentElement.insertAdjacentHTML('beforeend', sz_style); }
+
+                } // if(color_sw)
+
+
+
+                let clear_reset=commWrapp.querySelector('.clear_reset');
+                if(clear_reset){
+                    clear_reset.onclick=function(){
+                        aid_comm_remove();
+                        history.pushState('0', '0', location.href.replace(/#cbox/, '')); }} //「#cbox」削除
+
+            } // if(commWrapp)
+
+        } // com_disp()
+
+
+
+        function aid_comm_remove(){
+            if(document.querySelector('.aid_comm_con')){
+                document.querySelector('.aid_comm_con').remove(); }
+
+            if(document.querySelector('.aid_comm')){
+                document.querySelector('.aid_comm').remove(); }
+
+            if(document.querySelector('.aid_comm_col')){
+                document.querySelector('.aid_comm_col').remove(); }
+
+            if(document.querySelector('.aid_comm_sz')){
+                document.querySelector('.aid_comm_sz').remove(); }}
+
+
+
+
         let amb_header=document.querySelector('#ambHeader');
         let icon=document.querySelectorAll('._2G-Jap8c svg');
         if(icon.length=='3'){
@@ -109,300 +413,6 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
                 else{
                     window.location.href='https://www.ameba.jp/'; }}});
 
-
-
-        let ua=0;
-        let agent=window.navigator.userAgent.toLowerCase();
-        if(agent.indexOf('firefox') > -1){ ua=1; } // Firefoxの場合のフラッグ
-
-        let skin_type=0;
-        let skin_code=document.documentElement.getAttribute('data-base-skin-code');
-        if(skin_code){
-            if(skin_code=="uranus"){ // 新タイプ
-                skin_type=0; }
-            else if(skin_code=="new"){ // 旧タイプ
-                skin_type=1; }
-            else if(skin_code=="default"){ // レトロタイプ
-                skin_type=2; }}
-
-
-        if(location.hash=='#cboxad'){ // #cboxad付きURLで開かれた場合
-            let aid_comm=
-                '<style class="aid_comm">'+
-                'html { scroll-behavior: unset; overflow-y: hidden; } '+
-                'body { zoom: unset !important; '+
-                'transform: unset !important; width: unset !important; } '+
-                '.comm_wrapp { '+
-                'display: flex; flex-direction: column; '+
-                'position: fixed !important; z-index: 1999 !important; max-height: 80vh; '+
-                'top: 80px; left: calc(50% - 390px); width: 712px; margin: 0; '+
-                'padding:20px 25px 20px 40px !important; color: #000; background: #fff; '+
-                'border: 2px solid #aaa; box-shadow: 0 0 0 100vw rgb(0 0 0 / 25%); } '+
-
-                '.comm_wrapp *:not([data-uranus-icon]) { '+
-                'color: #000 !important; } '+
-
-                'button.commentWinOpenBtn { '+
-                'font: 16px Meiryo !important; padding-top: 2px; '+
-                'position: absolute; top: 20px; left: 300px; height: 28px; z-index: 1; '+
-                'border: 1px solid #777; border-radius: 3px; background: #eceff1; '+
-                'display: flex; align-items: center; justify-content: center; } '+
-
-                '.comm_wrapp .color_sw, .comm_wrapp .color_box, .comm_wrapp .clear_reset { '+
-                'font: 16px Meiryo !important; padding: 1px 0; '+
-                'position: absolute; top: 21px; height: 27px; width: 27px; cursor: pointer; } '+
-                '.comm_wrapp .color_sw, .comm_wrapp .color_box { left: 670px; } '+
-                '.comm_wrapp .color_sw { z-index: 2; } '+
-                '.comm_wrapp .color_box { z-index: 1; } '+
-                '.comm_wrapp .clear_reset { left: 710px; padding: 0 5px; z-index: 1; } '+
-
-                '[data-uranus-component="mainWidgetBody"], '+
-                '#comment_module, #commentListUl { '+
-                'overflow-y: scroll; overflow-x: hidden; overscroll-behavior-y: contain; } '+
-                '[data-uranus-component="mainWidgetBody"]::-webkit-scrollbar, '+
-                '#comment_module::-webkit-scrollbar, '+
-                '#commentListUl::-webkit-scrollbar { width: 15px; } '+
-                '[data-uranus-component="mainWidgetBody"]::-webkit-scrollbar-thumb, '+
-                '#comment_module::-webkit-scrollbar-thumb, '+
-                '#commentListUl::-webkit-scrollbar-thumb { '+
-                'background: #ddd; box-shadow: inset 10px 0 0 0 #fff; } '+
-                '[data-uranus-component="mainWidgetBody"]::-webkit-scrollbar-thumb:hover, '+
-                '#comment_module::-webkit-scrollbar-thumb:hover, '+
-                '#commentListUl::-webkit-scrollbar-thumb:hover { '+
-                'background: #ddd; box-shadow: inset 2px 0 0 0 #fff; } '+
-                '[data-uranus-component="mainWidgetBody"]::-webkit-scrollbar-track, '+
-                '#comment_module::-webkit-scrollbar-track, '+
-                '#commentListUl::-webkit-scrollbar-track { background: transparent; } ';
-
-            if(ua==1){
-                aid_comm+=
-                    '[data-uranus-component="mainWidgetBody"], '+
-                    '#comment_module, #commentListUl { '+
-                    'padding-right: 15px; scrollbar-color: #aaa transparent; } '; }
-
-            if(skin_type==0){ // 新タイプスキン
-                aid_comm+=
-                    '.skin-borderLoud, .skin-borderQuiet { border: none !important; } '+ // border 🔴
-                    '[data-uranus-component="commentsList"]>li { '+ // border 🔴
-                    'border-bottom: 1px dotted #888; } '+ // border 🔴
-                    '#commentsHeader { padding-bottom: 20px; margin: 0 15px 20px 0; } '+
-                    '#commentsHeader h4 { font: 16px Meiryo !important; } '+
-                    '#commentsList { margin: 0; } '+
-                    '[data-uranus-component="mainWidgetFooter"] { padding: 0; } '+
-                    '</style>'; }
-
-            if(skin_type==1){ // 旧タイプスキン
-                aid_comm+=
-                    '.skinBorderHr, .skinBorderList li { border-color: #888; } '+
-                    '.skinBorderHr { flex-shrink: 0; } '+
-                    '.commentOpenArea.skinWeakColor { display: none; } '+
-                    '.commentTitleArea.skinBorderHr { margin: 0 15px 20px 0; } '+
-                    'h1.commentTitle { font: 16px Meiryo !important; margin: 0 15px 16px 0; } '+
-                    '.commentBtnArea { padding: 0; } '+
-                    '</style>'; }
-
-            if(skin_type==2){ //レトロタイプスキン
-                aid_comm+=
-                    '#comment_module p.list { display: none; } '+
-                    '#comment_module h3.title { font: 16px Meiryo !important; } '+
-                    '#comment_module .each_comment { margin: 0; padding: 20px 0; } '+
-                    '</style>'; }
-
-            if(!document.querySelector('.aid_comm') && once==0){
-                document.documentElement.insertAdjacentHTML('beforeend', aid_comm); }
-
-
-
-            if(once==0){
-                let main=document.querySelector('#main');
-                if(main){
-                    main.scrollIntoView({ block: "end" }); }} // 本文末尾へスクロール
-
-            setTimeout(()=>{
-                let cbox=document.querySelector('#cbox');
-                if(!cbox){
-                    aid_comm_remove(); // 🔵
-                    once=1; }
-            }, 10000); // 10sec以降は「コメント欄」を表示する操作を停止 🔴
-
-
-
-            let cbox=document.querySelector('#cbox');
-            if(cbox){
-                once=1; // コメント欄の取得でスクロール指示を停止
-
-                if(skin_type==0){ // 新タイプスキン
-                    let cbox_wrapp=cbox.closest('[data-uranus-component="mainWidget"]');
-                    cbox_wrapp.classList.add('comm_wrapp'); }
-                else if(skin_type==1){ // 旧タイプスキン
-                    document.querySelector('.commentArea').classList.add('comm_wrapp'); }
-                else if(skin_type==2){ // レトロタイプスキン
-                    document.querySelector('#comment_module').classList.add('comm_wrapp'); }}
-
-
-
-            let commWrapp=document.querySelector('.comm_wrapp');
-            if(commWrapp){
-                if(!commWrapp.querySelector('.aid_comm_con')){
-                    let control=
-                        '<div class="aid_comm_con">'+
-                        '<input type="button" class="clear_reset" value="✖">'+
-                        '<input type="button" class="color_sw" title="背景色を指定する" value="">'+
-                        '<input type="color" class="color_box"></div>';
-                    commWrapp.insertAdjacentHTML('beforeend', control); }
-
-
-
-                let color_sw=commWrapp.querySelector('.color_sw');
-                if(color_sw){
-                    let sw_col=localStorage.getItem('aid_ambh_sw_col'); // ストレージから取得
-                    if(sw_col==null){
-                        sw_col='transparent'; // デフォルト背景色
-                        localStorage.setItem('aid_ambh_sw_col', sw_col); }
-
-                    set_color(sw_col);
-
-                    color_sw.onclick=function(event){
-                        let now_col=localStorage.getItem('aid_ambh_sw_col'); // ストレージから取得
-
-                        if(!event.ctrlKey){
-                            let color_box=commWrapp.querySelector('.color_box');
-                            color_box.value=now_col;
-                            color_box.click();
-
-                            color_box.oninput=function(){
-                                set_color(color_box.value);
-                                localStorage.setItem('aid_ambh_sw_col', color_box.value); }}
-
-                        else if(event.ctrlKey){ // 背景色指定をスキン指定に
-                            let ok=confirm("コメントの背景色をブログスキンの配色にします");
-                            if(ok){
-                                sw_col='transparent'; // 透明
-                                set_color(sw_col);
-                                localStorage.setItem('aid_ambh_sw_col', sw_col); }}}
-
-                } // if(color_sw)
-
-
-
-                function set_color(col){
-                    if(document.querySelector('.aid_comm_col')){
-                        document.querySelector('.aid_comm_col').remove(); }
-
-                    let color_style;
-                    if(col!='transparent'){
-                        if(skin_type==0){ // 新タイプスキン
-                            color_style='<style class="aid_comm_col">'+
-                                '.skin-bgQuiet { background: '+ col +'; } '+
-                                '.comm_wrapp .color_sw { box-shadow: inset 0 0 0 20px '+ col +'; }'+
-                                '</style>'; }
-                        else if(skin_type==1){ // 旧タイプスキン
-                            color_style='<style class="aid_comm_col">'+
-                                '.skinStrongBgColor { background: '+ col +'; } '+
-                                '.comm_wrapp .color_sw { box-shadow: inset 0 0 0 20px '+ col +'; }'+
-                                '</style>' }
-
-                        document.body.insertAdjacentHTML('beforeend', color_style); }}
-
-
-
-                if(color_sw){
-                    let fontsz=localStorage.getItem('aid_ambh_fontsz'); // ストレージから取得
-                    if(fontsz==null || fontsz>20 || fontsz<13){
-                        fontsz='16'; // デフォルトフォントサイズ
-                        localStorage.setItem('aid_ambh_fontsz', fontsz); }
-
-                    set_fontsz(fontsz);
-
-                    color_sw.onwheel=function(event){ // マスウホイールで設定
-                        if(color_sw_check()){
-                            if(event.deltaY<0 && fontsz<20){
-                                event.preventDefault();
-                                event.stopImmediatePropagation();
-                                fontsz=fontsz/1 +1;
-                                color_sw.value=fontsz;
-                                localStorage.setItem('aid_ambh_fontsz', fontsz); }
-
-                            else if(event.deltaY>0 && fontsz>13){
-                                event.preventDefault();
-                                event.stopImmediatePropagation();
-                                fontsz=fontsz/1 -1;
-                                color_sw.value=fontsz;
-                                localStorage.setItem('aid_ambh_fontsz', fontsz); }
-
-                            set_fontsz(fontsz); }}
-
-
-                    function color_sw_check(){
-                        let color_sw=document.querySelector('.color_sw');
-                        if(color_sw){
-                            return true; }}
-
-
-                    function set_fontsz(fontsz){
-                        color_sw.value=fontsz;
-                        let sz_style=
-                            '<style class="aid_comm_sz">'+
-                            '#commentsList *, #commentListUl *, .each_comment * { font: '+
-                            fontsz +'px Meiryo; }'+
-                            '<style>';
-
-                        if(document.querySelector('.aid_comm_sz')){
-                            document.querySelector('.aid_comm_sz').remove(); }
-                        document.documentElement.insertAdjacentHTML('beforeend', sz_style); }
-
-                } // if(color_sw)
-
-
-
-                let clear_reset=commWrapp.querySelector('.clear_reset');
-                if(clear_reset){
-                    clear_reset.onclick=function(){
-                        aid_comm_remove();
-                        history.pushState('0', '0', location.href.replace(/#cboxad/, '')); }} //「#cboxad」削除
-
-
-                let commMore=
-                    document.querySelector('[data-uranus-component="commentsMoreButton"]');
-                if(commMore){
-                    commMore.click(); }
-
-
-                let commMore2=
-                    document.querySelector('#commentListMoreLink');
-                if(commMore2){
-                    commMore2.click(); }
-
-            } // if(commWrapp)
-
-
-
-            if(once==0){
-                let mainWidget=document.querySelector('[data-uranus-component="mainWidget"]');
-                if(mainWidget){
-                    setTimeout(()=>{
-                        let cbox=document.querySelector('#cbox');
-                        if(!cbox){
-                            aid_comm_remove(); // 🔵
-                            once=1; }
-                    }, 100); }} // 新タイプスキンで「コメント欄」が無い場合は操作を停止
-
-
-
-            function aid_comm_remove(){
-                let aid_comm_con=document.querySelector('.aid_comm_con');
-                if(aid_comm_con){
-                    aid_comm_con.remove(); }
-
-                let aid_comm=document.querySelector('.aid_comm');
-                if(aid_comm){
-                    aid_comm.remove(); }
-
-                let aid_comm_col=document.querySelector('.aid_comm_col');
-                if(aid_comm_col){
-                    aid_comm_col.remove(); }}
-
-        } // #cbox付きURLで開かれた場合
     } // main()
 
 } // 通常のブログページ等
@@ -906,8 +916,8 @@ if(location.href=='https://www.ameba.jp/home'){ //「HOME」画面の場合
                         let href=notifi_link[k].getAttribute('href');
                         notifi_link[k].setAttribute('target', '_blank'); // 全て別タブで開く設定に変更
 
-                        if(href.match(/comment-/) && !href.match(/#cboxad/)){ //「コメント承認・返信」
-                            notifi_link[k].setAttribute('href', href+'#cboxad');
+                        if(href.match(/comment-/) && !href.match(/#cbox/)){ //「コメント承認・返信」
+                            notifi_link[k].setAttribute('href', href+'#cbox');
                             notifi_link[k].style.boxShadow=
                                 'inset -2px 0 0 2px #fff, inset 8px 0 0 #cfd8dc'; }
 
@@ -945,7 +955,7 @@ if(location.href=='https://www.ameba.jp/home'){ //「HOME」画面の場合
 
                         let M_icon=HCCI[k].querySelector('.HomeChecklist_Article_Meta_Icon');
                         if(M_icon){
-                            window.open(href+'#cboxad', '_blank');
+                            window.open(href+'#cbox', '_blank');
                             setTimeout(()=>{
                                 all_item_bar(0);
                                 all_item_bar_s(0);
@@ -995,7 +1005,7 @@ if(location.href=='https://www.ameba.jp/home'){ //「HOME」画面の場合
                 if(event.shiftKey){
                     event.preventDefault();
                     let href=HBCC_link[k].getAttribute('href');
-                    window.open(href+'#cboxad', '_blank');
+                    window.open(href+'#cbox', '_blank');
                     setTimeout(()=>{
                         all_item_bar(0);
                         all_item_bar_s(0);
@@ -1019,7 +1029,7 @@ if(location.href=='https://www.ameba.jp/home'){ //「HOME」画面の場合
                 if(event.shiftKey){
                     event.preventDefault();
                     let href=stuff_link.getAttribute('href');
-                    window.open(href+'#cboxad', '_blank');
+                    window.open(href+'#cbox', '_blank');
                     setTimeout(()=>{
                         all_item_bar(0);
                         all_item_bar_s(0);
@@ -1089,8 +1099,8 @@ if(location.href=='https://www.ameba.jp/notifications'){ //「お知らせ」画
         let notifi_link=document.querySelectorAll('.NotificationListItem');
         for(let k=0; k<notifi_link.length; k++){
             let href=notifi_link[k].getAttribute('href');
-            if(href.match(/comment-/) && !href.match(/#cboxad/)){ //「コメント承認」
-                notifi_link[k].setAttribute('href', href+'#cboxad');
+            if(href.match(/comment-/) && !href.match(/#cbox/)){ //「コメント承認」
+                notifi_link[k].setAttribute('href', href+'#cbox');
                 notifi_link[k].setAttribute('target', '_blank');
                 notifi_link[k].style.boxShadow='inset -2px 0 0 2px #fff, inset 8px 0 0 #cfd8dc'; }}
 
@@ -1122,7 +1132,7 @@ if(location.pathname.startsWith('/ucs/comment/commentlist')){ //「コメント�
             if(event.shiftKey){
                 event.preventDefault();
                 let href=UL_link[k].getAttribute('href');
-                window.open(href+'#cboxad', null, '_blank');
+                window.open(href+'#cbox', null, '_blank');
                 setTimeout(()=>{
                     all_item_rest();
                 }, 1000); }}}
