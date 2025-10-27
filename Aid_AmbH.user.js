@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Aid AmbH
 // @namespace        http://tampermonkey.net/
-// @version        4.2
+// @version        4.3
 // @description        「HOME」「ブログ」のリンク動作を改善
 // @author        Ameba blog User
 // @match        https://ameblo.jp/*
@@ -77,6 +77,26 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
                     com_disp(cbox); } // 独自のコメントパネルを表示
                 else{
                     sw.click(); }}); } // コメント欄の無いページからデフォルトのリンク移動
+
+
+        let comm_header;
+        if(skin_type==0){
+            comm_header=document.querySelector('#commentsHeader h4'); }
+        else if(skin_type==1){
+            comm_header=document.querySelector('h1.commentTitle'); }
+        else if(skin_type==2){
+            comm_header=document.querySelector('#comment_module h3.title'); }
+        if(comm_header){
+            comm_header.addEventListener('click', function(event){
+                if(!event.ctrlKey){
+                    let cbox=document.querySelector('#cbox');
+                    if(cbox){
+                        com_disp(cbox); }}}); }
+
+
+        let commWrapp=document.querySelector('.comm_wrapp');
+        if(!commWrapp){
+            aid_comm_remove(); } // ページ移動があった場合にリセット
 
 
 
@@ -306,7 +326,8 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
 
                 let clear_reset=commWrapp.querySelector('.clear_reset');
                 if(clear_reset){
-                    clear_reset.onclick=function(){
+                    clear_reset.onclick=function(event){
+                        event.stopImmediatePropagation();
                         aid_comm_remove();
                         history.pushState('0', '0', location.href.replace(/#cbox/, '')); }} //「#cbox」削除
 
@@ -396,6 +417,8 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
             '._2G-Jap8c svg { transition: .2s; } '+
             '._2G-Jap8c:hover { opacity: 1; } '+
             '._2G-Jap8c:hover svg { fill: #fff !important; background: #2196f3; }'+
+            '#commentsHeader h4, h1.commentTitle, #comment_module h3.title '+
+            '{ cursor: pointer; } '+ // コメント欄のデザイン
             '</style>';
 
         if(!document.querySelector('#aambh_style')){
