@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Aid AmbH
 // @namespace        http://tampermonkey.net/
-// @version        4.3
+// @version        4.4
 // @description        「HOME」「ブログ」のリンク動作を改善
 // @author        Ameba blog User
 // @match        https://ameblo.jp/*
@@ -478,18 +478,6 @@ if(location.href=='https://www.ameba.jp/home'){ //「HOME」画面の場合
         if(lback){
             lback.setAttribute('target', '_blank'); }
 
-        let brank=document.querySelectorAll('.HomeBlogFeed_Article_BlogRanking_Link');
-        for(let k=0; k<brank.length; k++){
-            brank[k].setAttribute('target', '_blank'); }
-
-        let trankt=document.querySelectorAll('.HomeBlogFeed_Article_TopicsRanking_Top3_Link');
-        for(let k=0; k<trankt.length; k++){
-            trankt[k].setAttribute('target', '_blank'); }
-
-        let trank=document.querySelectorAll('.HomeBlogFeed_Article_TopicsRanking_Item_Link');
-        for(let k=0; k<trank.length; k++){
-            trank[k].setAttribute('target', '_blank'); }
-
 
 
         //「ブログ管理」のリンクが無い時に代りのボタンを表示
@@ -856,12 +844,21 @@ if(location.href=='https://www.ameba.jp/home'){ //「HOME」画面の場合
                     if(if_body){
                         let NLIM=if_body.querySelectorAll('.NotificationListItem_Message');
                         for(let k=0; k<NLIM.length; k++){
-                            if(NLIM[k].textContent.includes(bt)){
+                            let notify_str=decodeEntity(NLIM[k].textContent);
+                            if(notify_str.includes(bt)){
                                 let link_elem=NLIM[k].closest('.NotificationListItem');
                                 if(link_elem){
                                     bt_url=link_elem.getAttribute('href');
                                     break; }}}
-                        return bt_url; }}}
+                        return bt_url; }}
+
+
+                function decodeEntity(str){
+                    var textarea=document.createElement('textarea');
+                    textarea.innerHTML=str;
+                    return textarea.value; }
+
+            } // com_url(bt)
 
 
             function double_reload(){
