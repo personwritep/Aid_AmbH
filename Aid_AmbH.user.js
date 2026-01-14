@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Aid AmbH
 // @namespace        http://tampermonkey.net/
-// @version        4.4
+// @version        4.5
 // @description        「HOME」「ブログ」のリンク動作を改善
 // @author        Ameba blog User
 // @match        https://ameblo.jp/*
@@ -157,7 +157,7 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
             if(skin_type==0){ // 新タイプスキン
                 ac_style+=
                     '.skin-borderLoud, .skin-borderQuiet { border: none !important; } '+ // border 🔴
-                    '[data-uranus-component="commentsList"]>li { '+ // border 🔴
+                    '[data-uranus-component="commentsList"] >li { '+ // border 🔴
                     'border-bottom: 1px dotted #888; } '+ // border 🔴
                     '#commentsHeader { padding-bottom: 20px; margin: 0 15px 0 0; } '+
                     '#commentsHeader h4 { font: 16px Meiryo !important; } '+
@@ -354,7 +354,7 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
 
 
         let amb_header=document.querySelector('#ambHeader');
-        let icon=document.querySelectorAll('._2G-Jap8c svg');
+        let icon=document.querySelectorAll('._2z2k1QDZ svg');
         if(icon.length=='3'){
             let svg0=
                 '<svg width="26" height="26" viewBox="0 0 64 64">'+
@@ -407,16 +407,16 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
 
         let aambh_style=
             '<style id="aambh_style">'+
-            '._2G-Jap8c { margin-top: 1px; } '+
-            '._2G-Jap8c svg { '+
+            '._2z2k1QDZ { margin-top: 1px; } '+
+            '._2z2k1QDZ svg { '+
             'border: 1px solid #aaa; border-radius: 4px; transition: .2s;'+
             'padding: 0; margin: 0 4px 0 15px; vertical-align: -9px; } '+
             '#svg_d0 svg { fill: #009688; } '+
             '#svg_d1 svg { fill: #ff9800; } '+
             '#svg_d2 svg { fill: #607d8b; } '+
-            '._2G-Jap8c svg { transition: .2s; } '+
-            '._2G-Jap8c:hover { opacity: 1; } '+
-            '._2G-Jap8c:hover svg { fill: #fff !important; background: #2196f3; }'+
+            '._2z2k1QDZ svg { transition: .2s; } '+
+            '._2z2k1QDZ:hover { opacity: 1; } '+
+            '._2z2k1QDZ:hover svg { fill: #fff !important; background: #2196f3; }'+
             '#commentsHeader h4, h1.commentTitle, #comment_module h3.title '+
             '{ cursor: pointer; } '+ // コメント欄のデザイン
             '</style>';
@@ -425,7 +425,7 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
             document.documentElement.insertAdjacentHTML('beforeend', aambh_style); }
 
 
-        let toHome=document.querySelector('._2G-Jap8c');
+        let toHome=document.querySelector('._2z2k1QDZ');
         toHome.addEventListener('click', function(event){
             event.preventDefault();
             if(event.shiftKey){
