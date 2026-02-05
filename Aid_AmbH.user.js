@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Aid AmbH
 // @namespace        http://tampermonkey.net/
-// @version        4.6
+// @version        4.7
 // @description        「HOME」「ブログ」のリンク動作を改善
 // @author        Ameba blog User
 // @match        https://ameblo.jp/*
@@ -35,16 +35,14 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
 
         let skin_type=0;
         let skin_code=document.documentElement.getAttribute('data-base-skin-code');
-        if(skin_code){
-            if(skin_code=="uranus"){ // 新タイプ
-                skin_type=0; }
-            else if(skin_code=="new"){ // 旧タイプ
-                skin_type=1; }
-            else if(skin_code=="default"){ // レトロタイプ
-                skin_type=2; }}
+        switch(skin_code){
+            case "uranus": skin_type=0; break;
+            case "new": skin_type=1; break;
+            case "default": skin_type=2; break;
+            default: skin_type=0; }
 
 
-
+        //「HOME」「コメント管理」からコメント欄に直行の機能を使った場合の処理
         if(location.hash=='#cbox'){ // #cbox付きURLで開かれた場合
             if(once==0){
                 let main=document.querySelector('#main');
@@ -58,27 +56,28 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
                     if(retry>100){ // リトライ制限 20回 2sec
                         clearInterval(interval);
                         once=1;
-                        aid_comm_remove(); } //「コメント欄」が無い場合は操作を停止
+                        aid_comm_remove(); } //「コメント欄」が無い場合は操作を停止 🔵
                     let target=document.querySelector('#cbox'); // 監視 target
                     if(target){
                         clearInterval(interval);
                         once=1; // コメント欄の取得
-                        com_disp(target); }}}
+                        com_disp(target); }}} // 独自パネルを表示 🔵
 
         } // #cbox付きURLで開かれた場合
 
 
-
+        //「コメントを見る」を押した場合の処理
         let sw=document.querySelector('.commentLink');
         if(sw){
             sw.addEventListener('click', function(event){
                 let cbox=document.querySelector('#cbox');
                 if(cbox){
-                    com_disp(cbox); } // 独自のコメントパネルを表示
+                    com_disp(cbox); } // 独自パネルを表示 🔵
                 else{
                     sw.click(); }}); } // コメント欄の無いページからデフォルトのリンク移動
 
 
+        //「コメント欄のヘッダー」を押した場合の処理
         let comm_header;
         if(skin_type==0){
             comm_header=document.querySelector('#commentsHeader h4'); }
@@ -91,12 +90,12 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
                 if(!event.ctrlKey){
                     let cbox=document.querySelector('#cbox');
                     if(cbox){
-                        com_disp(cbox); }}}); }
+                        com_disp(cbox); }}}); } // 独自パネルを表示 🔵
 
 
         let commWrapp=document.querySelector('.comm_wrapp');
         if(!commWrapp){
-            aid_comm_remove(); } // ページ移動があった場合にリセット
+            aid_comm_remove(); } // ページ移動があった場合にリセット 🔵
 
 
 
@@ -193,15 +192,10 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
             aid_env();
 
 
-            let commMore=
-                document.querySelector('[data-uranus-component="commentsMoreButton"]');
+            let commMore=document.querySelectorAll(
+                '[data-uranus-component="commentsMoreButton"], #commentListMoreLink')[0];
             if(commMore){
-                commMore.click(); } // コメント欄の全展開
-
-            let commMore2=
-                document.querySelector('#commentListMoreLink');
-            if(commMore2){
-                commMore2.click(); } // コメント欄の全展開
+                commMore.click(); } // コメント欄の全展開　新・旧タイプスキン共用
 
 
             if(skin_type==0){ // 新タイプスキン
@@ -219,7 +213,8 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
                     let control=
                         '<div class="aid_comm_con">'+
                         '<input type="button" class="clear_reset" value="✖">'+
-                        '<input type="button" class="color_sw" title="Click:背景色を指定　Wheel:文字サイズ" value="">'+
+                        '<input type="button" class="color_sw" value="" '+
+                        'title="Click: 背景色を指定\nCtrl+Click: 背景色をリセット\nWheel: 文字サイズ">'+
                         '<input type="color" class="color_box"></div>';
                     commWrapp.insertAdjacentHTML('beforeend', control); }
 
@@ -231,7 +226,6 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
                     if(sw_col==null){
                         sw_col='transparent'; // デフォルト背景色
                         localStorage.setItem('aid_ambh_sw_col', sw_col); }
-
                     set_color(sw_col);
 
                     color_sw.onclick=function(event){
@@ -239,23 +233,17 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
                             let color_box=commWrapp.querySelector('.color_box');
                             color_box.value=sw_col;
                             color_box.click();
-
                             color_box.oninput=function(){
                                 set_color(color_box.value);
                                 localStorage.setItem('aid_ambh_sw_col', color_box.value); }}
-
-                        else if(event.ctrlKey){ // 背景色指定をスキン指定に
-                            let ok=confirm("ブログスキンのコメント背景色を適用します");
+                        else if(event.ctrlKey){
+                            let ok=confirm("ブログごとのコメント背景色を適用します");
                             if(ok){
                                 sw_col='transparent'; // 透明
                                 set_color(sw_col);
                                 localStorage.setItem('aid_ambh_sw_col', sw_col); }}}
 
-
                     function set_color(col){
-                        if(document.querySelector('.aid_comm_col')){
-                            document.querySelector('.aid_comm_col').remove(); }
-
                         let color_style;
                         if(col!='transparent'){
                             if(skin_type==0){ // 新タイプスキン
@@ -268,45 +256,34 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
                                     '.skinStrongBgColor { background: '+ col +'; } '+
                                     '.comm_wrapp .color_sw { box-shadow: inset 0 0 0 20px '+ col +'; }'+
                                     '</style>' }
-
+                            if(document.querySelector('.aid_comm_col')){
+                                document.querySelector('.aid_comm_col').remove(); }
                             document.body.insertAdjacentHTML('beforeend', color_style); }}
 
-                } // if(color_sw)
 
 
-
-                if(color_sw){
                     let fontsz=localStorage.getItem('aid_ambh_fontsz'); // ストレージから取得
                     if(fontsz==null || fontsz>20 || fontsz<13){
                         fontsz='16'; // デフォルトフォントサイズ
                         localStorage.setItem('aid_ambh_fontsz', fontsz); }
-
                     set_fontsz(fontsz);
 
                     color_sw.onwheel=function(event){ // マスウホイールで設定
-                        if(color_sw_check()){
+                        let color_sw=document.querySelector('.color_sw');
+                        if(color_sw){
                             if(event.deltaY<0 && fontsz<20){
                                 event.preventDefault();
                                 event.stopImmediatePropagation();
                                 fontsz=fontsz/1 +1;
                                 color_sw.value=fontsz;
                                 localStorage.setItem('aid_ambh_fontsz', fontsz); }
-
                             else if(event.deltaY>0 && fontsz>13){
                                 event.preventDefault();
                                 event.stopImmediatePropagation();
                                 fontsz=fontsz/1 -1;
                                 color_sw.value=fontsz;
                                 localStorage.setItem('aid_ambh_fontsz', fontsz); }
-
                             set_fontsz(fontsz); }}
-
-
-                    function color_sw_check(){
-                        let color_sw=document.querySelector('.color_sw');
-                        if(color_sw){
-                            return true; }}
-
 
                     function set_fontsz(fontsz){
                         color_sw.value=fontsz;
@@ -315,7 +292,6 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
                             '#commentsList *, #commentListUl *, .each_comment * { font: '+
                             fontsz +'px Meiryo; }'+
                             '<style>';
-
                         if(document.querySelector('.aid_comm_sz')){
                             document.querySelector('.aid_comm_sz').remove(); }
                         document.documentElement.insertAdjacentHTML('beforeend', sz_style); }
@@ -332,7 +308,6 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
                         history.pushState('0', '0', location.href.replace(/#cbox/, '')); }} //「#cbox」削除
 
             } // if(commWrapp)
-
         } // com_disp()
 
 
@@ -353,11 +328,33 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
 
 
 
+        // アメブロヘッダーのアイコン表示
+        let aambh_style=
+            '<style id="aambh_style">'+
+            '._eThsBznJ svg._33E2I1li { display: none; } '+
+            '._eThsBznJ { margin-top: 1px; } '+
+            '._eThsBznJ svg { '+
+            'border: 1px solid #aaa; border-radius: 4px; transition: .2s;'+
+            'padding: 0; margin: 0 4px 0 15px; vertical-align: -9px; } '+
+            '.svg0 { fill: #009688; } '+
+            '.svg1 { fill: #ff9800; } '+
+            '.svg2 { fill: #607d8b; } '+
+            '._eThsBznJ:hover { opacity: 1; } '+
+            '._eThsBznJ:hover svg { fill: #fff !important; background: #2196f3; } '+
+
+            '#commentsHeader h4, h1.commentTitle, #comment_module h3.title '+
+            '{ cursor: pointer; } '+ // コメント欄のデザイン
+            '</style>';
+        if(!document.querySelector('#aambh_style')){
+            document.documentElement.insertAdjacentHTML('beforeend', aambh_style); }
+
+
         let amb_header=document.querySelector('#ambHeader');
         let icon=document.querySelectorAll('._eThsBznJ svg');
         if(icon.length=='3'){
-            let svg0=
-                '<svg width="26" height="26" viewBox="0 0 64 64">'+
+            let svgs=[];
+            svgs[0]=
+                '<svg class="svg0" width="26" height="26" viewBox="0 0 64 64">'+
                 '<g transform="translate(0,64) scale(0.1,-0.1)">'+
                 '<path d="M212 558 c-7 -7 -12 -35 -12 -64 0 -28 -7 -68 -15 -87 -8 '+
                 '-20 -15 -66 -15 -104 0 -61 -3 -69 -27 -89 -32 -25 -27 -60 8 -49 14 '+
@@ -376,8 +373,8 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
                 '-13 -55 0 -38 21 -44 71 -11 94 12 9 29 16 38 16 9 0 26 -7 38 -16z"/>'+
                 '</g></svg>';
 
-            let svg1=
-                '<svg width="26" height="26" viewBox="0 0 64 64">'+
+            svgs[1]=
+                '<svg class="svg1" width="26" height="26" viewBox="0 0 64 64">'+
                 '<g transform="translate(0,64) scale(0.1,-0.1)">'+
                 '<path d="M255 506 c-74 -33 -95 -88 -95 -256 0 -117 2 -132 20 -150 '+
                 '24 -24 48 -25 78 -4 17 12 22 25 22 59 l0 44 35 -6 c105 -17 213 93 '+
@@ -385,8 +382,8 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
                 '-18 -26 -50 -28 -76 -5 -36 33 -13 93 37 93 13 0 31 -7 39 -16z"/>'+
                 '</g></svg>';
 
-            let svg2=
-                '<svg width="26" height="26" viewBox="0 0 64 64">'+
+            svgs[2]=
+                '<svg class="svg2" width="26" height="26" viewBox="0 0 64 64">'+
                 '<g transform="translate(0,64) scale(0.1,-0.1)">'+
                 '<path d="M267 519 c-48 -28 -61 -116 -23 -154 87 -87 217 6 161 115 '+
                 '-8 16 -24 34 -34 40 -25 13 -81 12 -104 -1z"/>'+
@@ -394,35 +391,22 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
                 '188 0 201 5 181 69 -15 53 -65 109 -116 132 -50 23 -80 23 -130 0z"/>'+
                 '</g></svg>';
 
-            set_svg(0, svg0);
-            set_svg(1, svg1);
-            set_svg(2, svg2);
 
-            function set_svg(n, path){
-                let svg_d=document.createElement('div');
-                svg_d.id='svg_d'+n;
-                svg_d.innerHTML=path;
-                if(!amb_header.querySelector('#svg_d'+n)){
-                    icon[n].parentNode.replaceChild(svg_d, icon[n]); }}}
+            let fullurl=performance.getEntriesByType("navigation")[0].name;
+            let fragment=fullurl.split('#:~:text')[1] || ""; // フラグメントリンクで開いた場合を判定
+            if(fragment){
+                window.addEventListener('load', function(){
+                    set_svg(); }); } // フラグメントリンクのハイライトが消えるのを抑止
+            else{
+                set_svg(); }
 
-        let aambh_style=
-            '<style id="aambh_style">'+
-            '._eThsBznJ { margin-top: 1px; } '+
-            '._eThsBznJ svg { '+
-            'border: 1px solid #aaa; border-radius: 4px; transition: .2s;'+
-            'padding: 0; margin: 0 4px 0 15px; vertical-align: -9px; } '+
-            '#svg_d0 svg { fill: #009688; } '+
-            '#svg_d1 svg { fill: #ff9800; } '+
-            '#svg_d2 svg { fill: #607d8b; } '+
-            '._eThsBznJ svg { transition: .2s; } '+
-            '._eThsBznJ:hover { opacity: 1; } '+
-            '._eThsBznJ:hover svg { fill: #fff !important; background: #2196f3; }'+
-            '#commentsHeader h4, h1.commentTitle, #comment_module h3.title '+
-            '{ cursor: pointer; } '+ // コメント欄のデザイン
-            '</style>';
+            function set_svg(){
+                for(let k=0; k<3; k++){
+                    if(!amb_header.querySelector('.svg'+k)){
+                        icon[k].insertAdjacentHTML('beforebegin', svgs[k]); }}}
 
-        if(!document.querySelector('#aambh_style')){
-            document.documentElement.insertAdjacentHTML('beforeend', aambh_style); }
+        } // icon.length=='3'
+
 
 
         let toHome=document.querySelector('._eThsBznJ');
