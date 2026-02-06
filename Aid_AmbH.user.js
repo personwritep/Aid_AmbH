@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Aid AmbH
 // @namespace        http://tampermonkey.net/
-// @version        4.7
+// @version        4.8
 // @description        「HOME」「ブログ」のリンク動作を改善
 // @author        Ameba blog User
 // @match        https://ameblo.jp/*
@@ -329,83 +329,61 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
 
 
         // アメブロヘッダーのアイコン表示
+        let icon0=
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' "+
+            "style='fill: %23009688' width='26' height='26' viewBox='0 0 64 64'%3E%3Cg "+
+            "transform='translate(0,64) scale(0.1,-0.1)'%3E%3Cpath d='M212 558 c-7 -7 -12 "+
+            "-35 -12 -64 0 -28 -7 -68 -15 -87 -8 -20 -15 -66 -15 -104 0 -61 -3 -69 -27 -89 -32 "+
+            "-25 -27 -60 8 -49 14 5 25 2 30 -6 8 -11 12 -10 24 5 15 20 15 20 15 -1 0 -11 -9 -28 "+
+            "-20 -38 -31 -28 -8 -47 54 -43 44 3 51 6 54 25 4 30 20 30 24 1 3 -20 10 -23 54 -26 "+
+            "62 -4 85 15 54 43 -11 10 -20 27 -20 38 0 21 0 21 15 1 12 -15 16 -16 24 -5 5 8 16 "+
+            "11 30 6 35 -11 40 24 8 49 -25 20 -27 28 -27 91 -1 39 -7 88 -15 110 -8 22 -15 61 "+
+            "-15 86 0 30 -6 51 -15 59 -13 11 -21 8 -48 -18 -42 -41 -75 -41 -112 -2 -32 34 -36 "+
+            "35 -53 18z m38 -148 c0 -5 -4 -10 -10 -10 -5 0 -10 5 -10 10 0 6 5 10 10 10 6 0 10 "+
+            "-4 10 -10z m150 0 c0 -5 -4 -10 -10 -10 -5 0 -10 5 -10 10 0 6 5 10 10 10 6 0 10 -4 "+
+            "10 -10z m-103 -28 c-19 -20 -7 -42 23 -42 30 0 42 22 23 42 -16 18 -16 18 3 12 26 "+
+            "-9 64 -45 64 -60 0 -6 -7 -18 -16 -25 -14 -11 -21 -11 -45 3 -27 16 -31 16 -58 0 -24 "+
+            "-14 -31 -14 -45 -3 -9 7 -16 19 -16 25 0 20 48 59 79 65 2 1 -3 -7 -12 -17z m61 -128 "+
+            "c33 -23 27 -73 -10 -94 -25 -13 -31 -13 -55 0 -38 21 -44 71 -11 94 12 9 29 16 38 16 "+
+            "9 0 26 -7 38 -16z'%3E%3C/path%3E%3C/g%3E%3C/svg%3E";
+
+        let icon1=
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' "+
+            "style='fill: %23ff9800' width='26' height='26' viewBox='0 0 64 64'%3E%3Cg "+
+            "transform='translate(0,64) scale(0.1,-0.1)'%3E%3Cpath d='M255 506 c-74 -33 -95 "+
+            "-88 -95 -256 0 -117 2 -132 20 -150 24 -24 48 -25 78 -4 17 12 22 25 22 59 l0 44 35 "+
+            "-6 c105 -17 213 93 191 194 -23 105 -148 164 -251 119z m119 -112 c20 -20 20 -43 "+
+            "0 -72 -18 -26 -50 -28 -76 -5 -36 33 -13 93 37 93 13 0 31 -7 39 -16z'"+
+            "%3E%3C/path%3E%3C/g%3E%3C/svg%3E";
+
+        let icon2=
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' "+
+            "style='fill: %23607d8b' width='26' height='26' viewBox='0 0 64 64'%3E%3Cg "+
+            "transform='translate(0,64) scale(0.1,-0.1)'%3E%3Cpath d='M267 519 c-48 -28 -61 "+
+            "-116 -23 -154 87 -87 217 6 161 115 -8 16 -24 34 -34 40 -25 13 -81 12 -104 -1z'"+
+            "%3E%3C/path%3E%3Cpath d='M255 291 c-51 -23 -101 -79 -116 -132 -20 -64 -7 "+
+            "-69 181 -69 188 0 201 5 181 69 -15 53 -65 109 -116 132 -50 23 -80 23 -130 0z'"+
+            "%3E%3C/path%3E%3C/g%3E%3C/svg%3E";
+
+
         let aambh_style=
             '<style id="aambh_style">'+
-            '._eThsBznJ svg._33E2I1li { display: none; } '+
-            '._eThsBznJ { margin-top: 1px; } '+
-            '._eThsBznJ svg { '+
-            'border: 1px solid #aaa; border-radius: 4px; transition: .2s;'+
-            'padding: 0; margin: 0 4px 0 15px; vertical-align: -9px; } '+
-            '.svg0 { fill: #009688; } '+
-            '.svg1 { fill: #ff9800; } '+
-            '.svg2 { fill: #607d8b; } '+
+            '._eThsBznJ { margin-top: 1px; margin-left: 16px; } '+
+            '._eThsBznJ svg { border: 1px solid #aaa; border-radius: 4px; '+
+            'padding: 4px; margin: 0 4px 0 15px; vertical-align: -9px; fill: transparent; } '+
             '._eThsBznJ:hover { opacity: 1; } '+
-            '._eThsBznJ:hover svg { fill: #fff !important; background: #2196f3; } '+
+            '._eThsBznJ:hover svg { transition: .2s; background: #bbe1ff; } '+
+            '._eThsBznJ::before { content: ""; position: relative; display: inline-block; '+
+            'width: 25px; height: 25px; margin-right: -41px; background-repeat: no-repeat; } '+
+            '#ambHeader a:nth-child(2)::before { background-image: url("'+ icon0 +'"); } '+
+            '#ambHeader a:nth-child(3)::before { background-image: url("'+ icon1 +'"); } '+
+            '#ambHeader a:nth-child(4)::before { background-image: url("'+ icon2 +'"); } '+
 
             '#commentsHeader h4, h1.commentTitle, #comment_module h3.title '+
             '{ cursor: pointer; } '+ // コメント欄のデザイン
             '</style>';
         if(!document.querySelector('#aambh_style')){
             document.documentElement.insertAdjacentHTML('beforeend', aambh_style); }
-
-
-        let amb_header=document.querySelector('#ambHeader');
-        let icon=document.querySelectorAll('._eThsBznJ svg');
-        if(icon.length=='3'){
-            let svgs=[];
-            svgs[0]=
-                '<svg class="svg0" width="26" height="26" viewBox="0 0 64 64">'+
-                '<g transform="translate(0,64) scale(0.1,-0.1)">'+
-                '<path d="M212 558 c-7 -7 -12 -35 -12 -64 0 -28 -7 -68 -15 -87 -8 '+
-                '-20 -15 -66 -15 -104 0 -61 -3 -69 -27 -89 -32 -25 -27 -60 8 -49 14 '+
-                '5 25 2 30 -6 8 -11 12 -10 24 5 15 20 15 20 15 -1 0 -11 -9 -28 -20 -38 '+
-                '-31 -28 -8 -47 54 -43 44 3 51 6 54 25 4 30 20 30 24 1 3 -20 10 -23 54 '+
-                '-26 62 -4 85 15 54 43 -11 10 -20 27 -20 38 0 21 0 21 15 1 12 -15 16 '+
-                '-16 24 -5 5 8 16 11 30 6 35 -11 40 24 8 49 -25 20 -27 28 -27 91 -1 39 '+
-                '-7 88 -15 110 -8 22 -15 61 -15 86 0 30 -6 51 -15 59 -13 11 -21 8 -48 '+
-                '-18 -42 -41 -75 -41 -112 -2 -32 34 -36 35 -53 18z m38 -148 c0 -5 -4 '+
-                '-10 -10 -10 -5 0 -10 5 -10 10 0 6 5 10 10 10 6 0 10 -4 10 -10z m150 '+
-                '0 c0 -5 -4 -10 -10 -10 -5 0 -10 5 -10 10 0 6 5 10 10 10 6 0 10 -4 10 '+
-                '-10z m-103 -28 c-19 -20 -7 -42 23 -42 30 0 42 22 23 42 -16 18 -16 18 '+
-                '3 12 26 -9 64 -45 64 -60 0 -6 -7 -18 -16 -25 -14 -11 -21 -11 -45 3 -27 '+
-                '16 -31 16 -58 0 -24 -14 -31 -14 -45 -3 -9 7 -16 19 -16 25 0 20 48 59 '+
-                '79 65 2 1 -3 -7 -12 -17z m61 -128 c33 -23 27 -73 -10 -94 -25 -13 -31 '+
-                '-13 -55 0 -38 21 -44 71 -11 94 12 9 29 16 38 16 9 0 26 -7 38 -16z"/>'+
-                '</g></svg>';
-
-            svgs[1]=
-                '<svg class="svg1" width="26" height="26" viewBox="0 0 64 64">'+
-                '<g transform="translate(0,64) scale(0.1,-0.1)">'+
-                '<path d="M255 506 c-74 -33 -95 -88 -95 -256 0 -117 2 -132 20 -150 '+
-                '24 -24 48 -25 78 -4 17 12 22 25 22 59 l0 44 35 -6 c105 -17 213 93 '+
-                '191 194 -23 105 -148 164 -251 119z m119 -112 c20 -20 20 -43 0 -72 '+
-                '-18 -26 -50 -28 -76 -5 -36 33 -13 93 37 93 13 0 31 -7 39 -16z"/>'+
-                '</g></svg>';
-
-            svgs[2]=
-                '<svg class="svg2" width="26" height="26" viewBox="0 0 64 64">'+
-                '<g transform="translate(0,64) scale(0.1,-0.1)">'+
-                '<path d="M267 519 c-48 -28 -61 -116 -23 -154 87 -87 217 6 161 115 '+
-                '-8 16 -24 34 -34 40 -25 13 -81 12 -104 -1z"/>'+
-                '<path d="M255 291 c-51 -23 -101 -79 -116 -132 -20 -64 -7 -69 181 -69 '+
-                '188 0 201 5 181 69 -15 53 -65 109 -116 132 -50 23 -80 23 -130 0z"/>'+
-                '</g></svg>';
-
-
-            let fullurl=performance.getEntriesByType("navigation")[0].name;
-            let fragment=fullurl.split('#:~:text')[1] || ""; // フラグメントリンクで開いた場合を判定
-            if(fragment){
-                window.addEventListener('load', function(){
-                    set_svg(); }); } // フラグメントリンクのハイライトが消えるのを抑止
-            else{
-                set_svg(); }
-
-            function set_svg(){
-                for(let k=0; k<3; k++){
-                    if(!amb_header.querySelector('.svg'+k)){
-                        icon[k].insertAdjacentHTML('beforebegin', svgs[k]); }}}
-
-        } // icon.length=='3'
 
 
 
