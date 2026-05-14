@@ -1,0 +1,100 @@
+// ==UserScript==
+// @name         Aid AmbH
+// @namespace    http://tampermonkey.net/
+// @version      0.4
+// @description  アメブロヘッダーの動作改善
+// @author       Ameba blog User
+// @match        https://ameblo.jp/*
+// @match        https://secret.ameba.jp/*
+// @noframes
+// @grant        none
+// ==/UserScript==
+
+main();
+
+function main(){
+    let link=document.createElement('link');
+    link.setAttribute("media", "screen,print");
+    link.setAttribute("rel", "stylesheet");
+    link.setAttribute("href", "https://c.stat100.ameba.jp/ameblo/symbols/v3.24.0/fonts/ameba-symbols.css");
+
+    let head=document.getElementsByTagName('head');
+    if(head[0]){
+        head[0].appendChild(link); }
+
+
+    let amember=
+        document.querySelector('[data-uranus-component="amemberLabel"]');
+
+    let toHome;
+    if(!amember){
+        toHome=document.querySelector('._2sLQpDcQ:nth-child(2)'); }
+    else if(amember){
+        toHome=document.querySelector('.-ameblo-cmnhf-mypage a'); }
+
+    let css;
+    if(!amember){
+        css=
+            '._2sLQpDcQ { position: relative !important; } '+
+            '._2sLQpDcQ::before { position: absolute; top: 11px; left: 18px; '+
+            'font: 24px/19px ameba-symbols; } '+
+            '._2sLQpDcQ:nth-child(2)::before { '+
+            'content: "\\EA1e"; color: #009688; } '+
+            '._2sLQpDcQ:nth-child(3)::before { '+
+            'content: "\\EA3b"; color: #ff9800; } '+
+            '._2sLQpDcQ:nth-child(4)::before { '+
+            'content: "\\EA31"; color: #607d8b; } '+
+            '._2sLQpDcQ:hover { opacity: 1; } '+
+            '._2sLQpDcQ:hover::before { color: #fff !important; } '+
+            '._2sLQpDcQ ._3v-r_Z2P { margin: 0 4px 0 15px; padding: 3px 8px 3px 2px; '+
+            'border: 1px solid #aaa; border-radius: 4px; color: #fff; background: #fff; } '+
+            '._2sLQpDcQ:hover ._3v-r_Z2P { color: #2196f3; background: #2196f3; }'; }
+
+    else if(amember){
+        css=
+            '#ambHeader a:hover { text-decoration: none; } '+
+            '#ambHeaderLeft .-ameblo-cmnhf-icon { width: auto !important; '+
+            'margin: 0 4px 0 15px !important; padding: 2px 1px 3px 1px !important; '+
+            'height: 17px !important; vertical-align: -8px !important; '+
+            'border: 1px solid #aaa; border-radius: 4px; background: #fff !important; } '+
+            '.-ameblo-cmnhf-icon:before { font: 24px/19px ameba-symbols; } '+
+            '.-ameblo-cmnhf-mypage .-ameblo-cmnhf-icon:before { '+
+            'content: "\\EA1e"; color: #009688; } '+
+            '.-ameblo-cmnhf-mypage:hover .-ameblo-cmnhf-icon { '+
+            'background: #2196f3 !important; } '+
+            '.-ameblo-cmnhf-mypage:hover .-ameblo-cmnhf-icon:before { '+
+            'color: #fff !important; } '+
+            '.-ameblo-cmnhf-pigg .-ameblo-cmnhf-icon:before { '+
+            'content: "\\EA3b"; color: #ff9800; } '+
+            '.-ameblo-cmnhf-pigg:hover .-ameblo-cmnhf-icon { '+
+            'background: #2196f3 !important; } '+
+            '.-ameblo-cmnhf-pigg:hover .-ameblo-cmnhf-icon:before { '+
+            'color: #fff !important; } '+
+            '.-ameblo-cmnhf-blog .-ameblo-cmnhf-icon:before { '+
+            'content: "\\EA31"; color: #607d8b; } '+
+            '.-ameblo-cmnhf-blog :hover .-ameblo-cmnhf-icon { '+
+            'background: #2196f3 !important; } '+
+            '.-ameblo-cmnhf-blog:hover .-ameblo-cmnhf-icon:before { '+
+            'color: #fff !important; }'; }
+
+    let base=document.querySelector('body');
+
+    let style=document.createElement('style'); // ambHeader のアレンジ
+    style.setAttribute("id", "aambh_style");
+    style.innerHTML=css;
+    if(!base.querySelector('#aambh_style')){
+        base.appendChild(style); }
+
+
+    toHome.addEventListener('click', function(event){
+        event.preventDefault();
+        if(event.shiftKey){
+            location.href="https://www.ameba.jp/"; }
+        else{
+            let ref=window.history.length;
+            if(ref==1){
+                window.close(); }
+            else{
+                location.href="https://www.ameba.jp/"; }}});
+
+} // main()
