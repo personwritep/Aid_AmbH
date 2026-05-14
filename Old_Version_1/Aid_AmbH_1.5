@@ -1,484 +1,581 @@
 // ==UserScript==
-// @name         Follow Feed Checker
+// @name         Aid AmbH
 // @namespace    http://tampermonkey.net/
 // @version      1.5
-// @description  「フォローフィード」の管理補助ツール
-// @author       Ameba Blog User
+// @description  「HOME」「ブログ」のリンク動作を改善
+// @author       Ameba blog User
+// @match        https://ameblo.jp/*
+// @match        https://secret.ameba.jp/*
 // @match        https://www.ameba.jp/home
-// @match        https://blog.ameba.jp/ucs/blgfavorite/*
-// @match        https://blog.ameba.jp/reader.do?bnm*
-// @match        https://blog.ameba.jp/readerend.do*
+// @match        https://www.ameba.jp/notifications
+// @match        https://blog.ameba.jp/ucs/comment/commentlist*
+// @match        https://blog.ameba.jp/ucs/iine/*
+// @noframes
 // @grant        none
 // ==/UserScript==
 
 
+if(location.hostname!='www.ameba.jp' && location.hostname!='blog.ameba.jp'){ // 通常のブログページ等
+    let once=0; // 処理の複数回動作を抑止
 
-if(document.querySelector('#AppShellDesktop')){ // HOMEページで有効
-    let mode=0;
-    let lock=0;
-    let user_id;
+    let target0=document.querySelector('head');
+    let monitor0=new MutationObserver(main);
+    monitor0.observe(target0, { childList: true });
 
-    let redo; // インターバル変数
-    let setting=[]; // 動作設定の記録配列
-    // setting[0] スクリプト名
-    // setting[1] フィード初期リスト数
-    // setting[2] フィードタイマー更新 ON/OFF
-    // setting[3] タイマー更新の繰返し時間
-    // setting[4] ブラウザフォーカス ON/OFF
-    // setting[5] リスト更新直前の最下のリスト番号
-    // setting[6] リスト更新直前のページスクロール量
-
-
-    let read_json=localStorage.getItem('followfeed_set'); // ローカルストレージ保存名
-    setting=JSON.parse(read_json);
-    if(setting==null || setting.length<7){
-        setting=['FollowFeedSet',20,1,10,0,0,0]; }
-    let write_json=JSON.stringify(setting);
-    localStorage.setItem('followfeed_set', write_json); // ローカルストレージ保存
-
-
-
-    ff_panel();
-    ff_setting();
-    auto_feed();
-
-
-
-    function slow_more(){
-        let more_button=
-            document.querySelector('.HomeChecklist .Collection_ReadMore_Button');
-        if(more_button){
-            let rect=more_button.getBoundingClientRect();
-            let item=document.querySelectorAll('.HomeChecklist_Collection_Item');
-            if(rect.top<window.innerHeight && item.length<setting[1]){ // 指定記事数まで 🔴
-                last_item();
-                more_button.click(); }}}
-
-
-    function last_item(){
-        let item=document.querySelectorAll('.HomeChecklist_Collection_Item');
-        for(let k=item.length-1; k>=0; k--){
-            let rect=item[k].getBoundingClientRect();
-            if(rect.top<window.innerHeight){
-                setting[5]=k; // 🔵 リストの表示上の末尾を取得
-                setting[6]=parseInt(window.pageYOffset);
-                break; }}
-        let write_json=JSON.stringify(setting);
-        localStorage.setItem('followfeed_set', write_json); } // ローカルストレージ保存
-
-
-    function fix_last(){
-        let item=document.querySelectorAll('.HomeChecklist_Collection_Item');
-        let more_button=
-            document.querySelector('.HomeChecklist .Collection_ReadMore_Button');
-        if(more_button){
-            if(item.length<setting[5]){ // 指定記事までリストを開く 🔵
-                more_button.click(); }}
-        document.documentElement.scrollTop=setting[6]; }
-
-
-    function top_env(){ // ページ最上部に 戻るボタン・スクロールバー で戻った場合
-        if(document.documentElement.scrollTop<100){
-            setting[5]=8;
-            setting[6]=0;
-            let write_json=JSON.stringify(setting);
-            localStorage.setItem('followfeed_set', write_json); }} // ローカルストレージ保存
-
-
-
-    function auto_feed(){
-        redo=setInterval(()=>{
-            feed(setting[2]); }, setting[3]*60000); } // 自動タイマー設定と開始 🔴
-
-    let focus_fake=1; // 不感コントロール変数
-    window.addEventListener('focus', function(){
-        if(setting[4]==1){ // フォーカスで自動タイマーリセット 🔴
-            if(focus_fake==1){
-                focus_fake=0;
-                clearInterval(redo);
-                auto_feed();
-                setTimeout(()=>{
-                    focus_fake=1; }, setting[3]*30000); }}}); // フォーカス不感時間 🔴
-
-    function feed(sw){
-        let control_b=document.querySelector('.PcModuleHeader_Control button');
-        if(control_b && sw==1){
-            last_item(); // 🔵 リストスクロール位置取得
-            control_b.click();
-            fix_last(); }} // 指定記事までリストを開く 🔵
-
-
-
-    function ff_panel(){
-        let panel=document.createElement('div');
-        panel.innerHTML=
-            '<input id="ff_close" type="submit" value="✖">'+
-            '<span>　フィードの初期リスト数 </span>'+
-            '<input id="list_open" type="number" value="20" min="10" step="10">　　'+
-            '<label><input id="ff_timer" type="checkbox"> タイマー更新</label>'+
-            '<div id="ref_set"><span>　更新間隔 </span>'+
-            '<input id="ref_setter" type="number" value="10" min="1" max="30" step="1">'+
-            '<span> 分　　</span></div>'+
-            '<label><input id="ff_focus" type="checkbox"> フォーカス検知</label>'+
-            '<style>#ff_panel { position: fixed; top: 8px; left: calc(50% - 532px); '+
-            'font: bold 16px/24px Meiryo; color: #666; background: #fff; display: none; '+
-            'width: auto; height: 30px; padding: 7px 20px 3px; border: 1px solid #20d6c5; '+
-            'box-shadow: 4px 6px 8px rgb(0, 0, 0, .1); z-index: 10; } '+
-            '@media screen and (max-width: 1140px){ #ff_panel { left: 28px; }} '+
-            '#ff_close { padding: 3px 2px 1px; } '+
-            '#list_open, #ref_setter { width: 50px; padding: 4px 2px 1px; text-align: center; } '+
-            '#ref_set { display: inline-block; } '+
-            '.PcHeader_Logo_Image { outline: 1px solid #20d6c5; outline-offset: 3px; } '+
-            '</style>';
-        panel.setAttribute('id', 'ff_panel');
-        if(!document.querySelector('#ff_panel')){
-            document.querySelector('body').appendChild(panel); }}
-
-
-    function ff_setting(){
-        let pc_logo=document.querySelector('h1.PcHeader_Logo');
-        let ff_panel=document.querySelector('#ff_panel');
-        if(pc_logo && ff_panel){
-            pc_logo.onclick=function(event){
-                event.preventDefault();
-                ff_panel.style.display='block';
-
-                let ff_close=document.querySelector('#ff_close');
-                ff_close.onclick=function(event){
-                    event.stopImmediatePropagation();
-                    window.location.reload(); }
-
-                let list_open=document.querySelector('#list_open');
-                list_open.value=setting[1];
-                list_open.onchange=function(){
-                    setting[1]=parseFloat(list_open.value);
-                    let write_json=JSON.stringify(setting);
-                    localStorage.setItem('followfeed_set', write_json); } // ストレージ保存
-
-                let ff_timer=document.querySelector('#ff_timer');
-                let ref_set=document.querySelector('#ref_set');
-                let ref_setter=document.querySelector('#ref_setter');
-                if(setting[2]==1){
-                    ff_timer.checked=true;
-                    ref_set.style.opacity=1;
-                    ref_setter.disabled=false; }
-                else{
-                    ff_timer.checked=false;
-                    ref_set.style.opacity=0.5;
-                    ref_setter.disabled=true; }
-                ff_timer.onchange=function(){
-                    if(ff_timer.checked){
-                        setting[2]=1;
-                        ref_set.style.opacity=1;
-                        ref_setter.disabled=false; }
-                    else{
-                        setting[2]=0;
-                        ref_set.style.opacity=0.5;
-                        ref_setter.disabled=true; }
-                    let write_json=JSON.stringify(setting);
-                    localStorage.setItem('followfeed_set', write_json); } // ストレージ保存
-
-                ref_setter=document.querySelector('#ref_setter');
-                ref_setter.value=setting[3];
-                ref_setter.onchange=function(){
-                    if(parseFloat(ref_setter.value)>=0.1){
-                        setting[3]=parseFloat(ref_setter.value); }
-                    else{
-                        setting[3]=1; }
-                    let write_json=JSON.stringify(setting);
-                    localStorage.setItem('followfeed_set', write_json); } // ストレージ保存
-
-                let ff_focus=document.querySelector('#ff_focus');
-                if(setting[4]==1){
-                    ff_focus.checked=true; }
-                else{
-                    ff_focus.checked=false; }
-                ff_focus.onchange=function(){
-                    if(ff_focus.checked){
-                        setting[4]=1; }
-                    else{
-                        setting[4]=0; }
-                    let write_json=JSON.stringify(setting);
-                    localStorage.setItem('followfeed_set', write_json); } // ストレージ保存
-            }}} // ff_setting()
-
-
-
-    let target=document.querySelector('.HomeChecklist'); // 監視 target
-    let monitor=new MutationObserver(main);
-    monitor.observe(target, {childList: true, subtree: true}); // 監視開始
+    main();
 
     function main(){
+        let amember=
+            document.querySelector('[data-uranus-component="amemberLabel"]');
 
-        fix_last(); // ホームを開いた時の初期リスト表示 🔴
-
-        window.addEventListener('wheel', function(){
-            slow_more(); });
-
-        window.addEventListener("scroll", function() {
-            top_env(); });
-
-        window.addEventListener("beforeunload", function(){
-            setting[5]=8;
-            setting[6]=0;
-            let write_json=JSON.stringify(setting);
-            localStorage.setItem('followfeed_set', write_json); }); // ローカルストレージ保存
-
-        let more_button=
-            document.querySelector('.HomeChecklist .Collection_ReadMore_Button');
-        if(more_button){
-            more_button.addEventListener('mousedown', function(event){
-                last_item(); }); }
+        let toHome;
+        if(!amember){
+            toHome=document.querySelector('._2sLQpDcQ:nth-child(2)'); }
+        else if(amember){
+            toHome=document.querySelector('.-ameblo-cmnhf-mypage a'); }
 
 
-        mode_select();
-        checker();
+        let css;
+        if(!amember){
+            let amb_header=document.querySelector('#ambHeader');
+            let icon=document.querySelectorAll('._2sLQpDcQ svg');
+            if(icon.length=='3'){
+                let svg0=
+                    '<svg width="24" height="24" viewBox="0 0 64 64">'+
+                    '<g transform="translate(0,64) scale(0.1,-0.1)">'+
+                    '<path d="M212 558 c-7 -7 -12 -35 -12 -64 0 -28 -7 -68 -15 -87 -8 '+
+                    '-20 -15 -66 -15 -104 0 -61 -3 -69 -27 -89 -32 -25 -27 -60 8 -49 14 '+
+                    '5 25 2 30 -6 8 -11 12 -10 24 5 15 20 15 20 15 -1 0 -11 -9 -28 -20 -38 '+
+                    '-31 -28 -8 -47 54 -43 44 3 51 6 54 25 4 30 20 30 24 1 3 -20 10 -23 54 '+
+                    '-26 62 -4 85 15 54 43 -11 10 -20 27 -20 38 0 21 0 21 15 1 12 -15 16 '+
+                    '-16 24 -5 5 8 16 11 30 6 35 -11 40 24 8 49 -25 20 -27 28 -27 91 -1 39 '+
+                    '-7 88 -15 110 -8 22 -15 61 -15 86 0 30 -6 51 -15 59 -13 11 -21 8 -48 '+
+                    '-18 -42 -41 -75 -41 -112 -2 -32 34 -36 35 -53 18z m38 -148 c0 -5 -4 '+
+                    '-10 -10 -10 -5 0 -10 5 -10 10 0 6 5 10 10 10 6 0 10 -4 10 -10z m150 '+
+                    '0 c0 -5 -4 -10 -10 -10 -5 0 -10 5 -10 10 0 6 5 10 10 10 6 0 10 -4 10 '+
+                    '-10z m-103 -28 c-19 -20 -7 -42 23 -42 30 0 42 22 23 42 -16 18 -16 18 '+
+                    '3 12 26 -9 64 -45 64 -60 0 -6 -7 -18 -16 -25 -14 -11 -21 -11 -45 3 -27 '+
+                    '16 -31 16 -58 0 -24 -14 -31 -14 -45 -3 -9 7 -16 19 -16 25 0 20 48 59 '+
+                    '79 65 2 1 -3 -7 -12 -17z m61 -128 c33 -23 27 -73 -10 -94 -25 -13 -31 '+
+                    '-13 -55 0 -38 21 -44 71 -11 94 12 9 29 16 38 16 9 0 26 -7 38 -16z"/>'+
+                    '</g></svg>';
+
+                let svg1=
+                    '<svg width="24" height="24" viewBox="0 0 64 64">'+
+                    '<g transform="translate(0,64) scale(0.1,-0.1)">'+
+                    '<path d="M255 506 c-74 -33 -95 -88 -95 -256 0 -117 2 -132 20 -150 '+
+                    '24 -24 48 -25 78 -4 17 12 22 25 22 59 l0 44 35 -6 c105 -17 213 93 '+
+                    '191 194 -23 105 -148 164 -251 119z m119 -112 c20 -20 20 -43 0 -72 '+
+                    '-18 -26 -50 -28 -76 -5 -36 33 -13 93 37 93 13 0 31 -7 39 -16z"/>'+
+                    '</g></svg>';
+
+                let svg2=
+                    '<svg width="24" height="24" viewBox="0 0 64 64">'+
+                    '<g transform="translate(0,64) scale(0.1,-0.1)">'+
+                    '<path d="M267 519 c-48 -28 -61 -116 -23 -154 87 -87 217 6 161 115 '+
+                    '-8 16 -24 34 -34 40 -25 13 -81 12 -104 -1z"/>'+
+                    '<path d="M255 291 c-51 -23 -101 -79 -116 -132 -20 -64 -7 -69 181 -69 '+
+                    '188 0 201 5 181 69 -15 53 -65 109 -116 132 -50 23 -80 23 -130 0z"/>'+
+                    '</g></svg>';
+
+                set_svg(0, svg0);
+                set_svg(1, svg1);
+                set_svg(2, svg2);
+
+                function set_svg(n, path){
+                    let svg_d=document.createElement('div');
+                    svg_d.id='svg_d'+n;
+                    svg_d.innerHTML=path;
+                    if(!amb_header.querySelector('#svg_d'+n)){
+                        icon[n].parentNode.replaceChild(svg_d, icon[n]); }}}
+
+            css=
+                '._2sLQpDcQ svg { '+
+                'border: 1px solid #aaa; border-radius: 4px; transition: .2s;'+
+                'padding: 0 2px; margin: 0 4px 0 15px; vertical-align: -9px; } '+
+                '#svg_d0 svg { fill: #009688; } '+
+                '#svg_d1 svg { fill: #ff9800; } '+
+                '#svg_d2 svg { fill: #607d8b; } '+
+                '._2sLQpDcQ svg { transition: .2s; } '+
+                '._2sLQpDcQ:hover { opacity: 1; } '+
+                '._2sLQpDcQ:hover svg { fill: #fff !important; background: #2196f3; }'; }
 
 
-        function mode_select(){
-            let control_a=document.querySelector('.PcModuleHeader_Control a');
-            control_a.onclick=function(e){
-                lock=1; } //「設定」で mode_selectを抑止
+        else if(amember){
+            css=
+                '#ambHeader a:hover { text-decoration: none; } '+
+                '#ambHeader .-ameblo-cmnhf-icon { '+
+                'width: auto !important; height: 17px !important; '+
+                'margin: 0 4px 0 15px !important; padding: 2px 1px 3px 1px !important; '+
+                'border: 1px solid #aaa; border-radius: 4px; '+
+                'vertical-align: -8px !important; background-image: none !important; } '+
+                '#ambHeader .-ameblo-cmnhf-icon:before { '+
+                'font: 24px/19px ameba-symbols; transition: .2s; } '+
+                '.-ameblo-cmnhf-mypage .-ameblo-cmnhf-icon:before { '+
+                'content: "\\EA1e"; color: #009688; } '+
+                '.-ameblo-cmnhf-mypage:hover .-ameblo-cmnhf-icon { '+
+                'background: #2196f3 !important; } '+
+                '.-ameblo-cmnhf-mypage:hover .-ameblo-cmnhf-icon:before { '+
+                'color: #fff !important; } '+
+                '.-ameblo-cmnhf-pigg .-ameblo-cmnhf-icon:before { '+
+                'content: "\\EA3b"; color: #ff9800; } '+
+                '.-ameblo-cmnhf-pigg:hover .-ameblo-cmnhf-icon { '+
+                'background: #2196f3 !important; } '+
+                '.-ameblo-cmnhf-pigg:hover .-ameblo-cmnhf-icon:before { '+
+                'color: #fff !important; } '+
+                '.-ameblo-cmnhf-blog .-ameblo-cmnhf-icon:before { '+
+                'content: "\\EA31"; color: #607d8b; } '+
+                '.-ameblo-cmnhf-blog:hover .-ameblo-cmnhf-icon { '+
+                'background: #2196f3 !important; } '+
+                '.-ameblo-cmnhf-blog:hover .-ameblo-cmnhf-icon:before { '+
+                'color: #fff !important; }'; }
 
-            let control_b=document.querySelector('.PcModuleHeader_Control button');
-            control_b.onclick=function(e){
-                lock=1;
-                setTimeout( function(){
-                    lock=0; }, 100); } //「フィードを更新」で mode_selectを抑止
-
-            let checklist=document.querySelector('.HomeChecklist');
-            let title=document.querySelector('.HomeChecklist .PcModuleHeader');
-            let title_label=document.querySelector('.HomeChecklist .PcModuleHeader_Title');
-            let title_con=document.querySelectorAll('.PcModuleHeader_Control_Link');
-
-            title.style.cursor='pointer';
-
-            title.onclick=function(){
-                if(mode==0 && lock==0){
-                    mode=1;
-                    checklist.style.boxShadow='0 0 0 15px #6292ab inset';
-                    title.style.boxShadow='0 -4px 0 10px #6292ab, 0 0 0 20px #6292ab inset';
-                    title_label.style.color='#fff';
-                    title_con[0].style.background='#fff';
-                    title_con[1].style.background='#fff';
-                    wide_style();
-                    checker();}
-                else if(mode==1 && lock==0){
-                    mode=0;
-                    checklist.style.boxShadow='';
-                    title.style.boxShadow='';
-                    title_label.style.color='#298538';
-                    title_con[0].style.background='';
-                    title_con[1].style.background='';
-                    wide_style_off();
-                    checker(); }}
-
-            let k;
-            let r_column=document.querySelector('.PcLayout_RightColumn');
-            let c_style=window.getComputedStyle(r_column);
-            let c_width=c_style.getPropertyValue('width');
-            let c_item=document.querySelectorAll('.HomeChecklist_Collection_Item:nth-child(odd)');
-            function wide_style(){
-                if(c_width=='740px'){
-                    checklist.style.padding='20px';
-                    for(k=0; k<c_item.length; k++){
-                        c_item[k].style.marginRight='24px'; }}}
-
-            function wide_style_off(){
-                if(c_width=='740px'){
-                    checklist.style.padding='';
-                    for(k=0; k<c_item.length; k++){
-                        c_item[k].style.marginRight='64px'; }}}}
+        let base=document.querySelector('body');
+        let style=document.createElement('style'); // ambHeader のアレンジ
+        style.setAttribute("id", "aambh_style");
+        style.innerHTML=css;
+        if(!base.querySelector('#aambh_style')){
+            base.appendChild(style); }
 
 
-        function checker(){
-            let k;
-            let user_href;
+        toHome.addEventListener('click', function(event){
+            event.preventDefault();
+            if(event.shiftKey){
+                location.href='https://www.ameba.jp/'; }
+            else{
+                if(document.referrer=='https://www.ameba.jp/'){
+                    window.close(); }
+                else{
+                    window.location.href='https://www.ameba.jp/'; }}});
 
-            let item=document.querySelectorAll('.HomeChecklist_Collection_Item');
-            for(k=0; k<item.length; k++){
-                select_item(k); }
 
-            function select_item(n){
-                if(mode==1){
-                    item[n].onclick=function(e){
-                        e.preventDefault();
-                        user_href=item[n].querySelector('.HomeChecklist_Article_Link').getAttribute('href');
-                        user_id=user_href.replace('https://ameblo.jp/', '');
-                        let index=user_id.indexOf('/entry');
-                        user_id=user_id.substring(0, index);
-                        item[n].style.outline='2px solid red';
-                        setTimeout( conf, 800);
 
-                        function conf(){
-                            item[n].style.outline='';
-                            let url_str='https://blog.ameba.jp/ucs/blgfavorite/favoritelist.do?' + user_id;
-                            window.open( url_str, '_blank'); }}} // ページ移動
-                else if(mode==0){
-                    item[n].onclick=function(e){ ; }}}}
+        if(location.hash=='#cbox'){ // #cbox付きURLで開かれた場合
+            if(!document.querySelector('#aid_comm')){
+                document.documentElement.insertAdjacentHTML(
+                    'beforeend',
+                    '<style id="aid_comm">'+
+                    'html { scroll-behavior: unset; } '+
+                    'body { zoom: unset !important; '+
+                    'transform: unset !important; width: unset !important; } '+
+                    '.comm_wrapp { '+
+                    'display: flex; flex-direction: column; '+
+                    'position: fixed !important; z-index: 100 !important; '+
+                    'top: 60px; left: calc(50% - 360px); '+
+                    'width: 620px; margin: 0; padding:20px 60px 20px 40px !important; '+
+                    'max-height: 80vh; overflow-y: auto; color: #000; background: #fff; '+
+                    'border: 2px solid #aaa; box-shadow: 0 0 0 100vw rgb(0 0 0 / 25%); } '+
+                    '.comm_wrapp *:not([data-uranus-icon]) '+
+                    '{ font: 16px Meiryo; color: #000 !important; } '+
+                    '.comm_wrapp .clear_reset { position: absolute; top: 20px; right: 15px; '+
+                    'height: 26px; width: 26px; padding: 0 5px; cursor: pointer; } '+
+
+                    // 新タイプスキン
+                    '.skin-bgQuiet { background: #f6f8f9; } '+
+                    '.skin-borderLoud, .skin-borderQuiet { border-color: #888; } '+
+                    '#commentsHeader { margin-top: 0; } '+
+                    '[data-uranus-component="mainWidgetFooter"] { '+
+                    'order: -1; padding: 0; } '+
+                    '[data-uranus-component="mainWidgetFooter"] button, '+
+                    '[data-uranus-component="mainWidgetFooter"] .commentWinOpenBtn { '+
+                    'background: #eceff1; height: 28px; border: 1px solid #777; '+
+                    'border-radius: 3px; } '+
+                    '[data-uranus-component="mainWidgetFooter"] span { '+
+                    'vertical-align: -9px; } '+
+
+                    // 旧タイプスキン
+                    '.skinStrongBgColor { background: #f6f8f9; } '+
+                    '.skinBorderHr, .skinBorderList li { border-color: #888; } '+
+                    '.skinBorderHr { flex-shrink: 0; } '+
+                    '.commentOpenArea.skinWeakColor { display: none; } '+
+                    '.commentBtnArea { order: -1; padding: 0; } '+
+                    '.commentBtnArea .commentWinOpenBtn { '+
+                    'background: #eceff1; height: 28px; border: 1px solid #777; '+
+                    'border-radius: 3px; } '+
+                    '.commentBtnArea span { padding: 3px 0 0; vertical-align: -4px; } '+
+
+                    //レトロタイプスキン
+                    '#comment_module p.list { display: none; } '+
+                    '#comment_module .commentWinOpenBtn { '+
+                    'order: -1; height: 28px; margin: 0 auto; } '+
+
+                    '</style>'); }
+
+
+            if(once==0){
+                let body_height=document.body.scrollHeight;
+                window.scrollTo(0, body_height);
+                once=1; }
+
+
+            let cbox=document.querySelector('#cbox');
+            if(cbox){
+                // 新タイプスキン
+                if(document.querySelector('[data-uranus-component="mainWidget"]')){
+                    let cbox_wrapp=cbox.closest('[data-uranus-component="mainWidget"]');
+                    cbox_wrapp.classList.add('comm_wrapp'); }
+                // 旧タイプスキン
+                else if(document.querySelector('.commentArea')){
+                    document.querySelector('.commentArea').classList.add('comm_wrapp'); }
+                // レトロタイプスキン
+                else if(document.querySelector('#comment_module')){
+                    document.querySelector('#comment_module').classList.add('comm_wrapp'); }}
+
+
+            let commWrapp=document.querySelector('.comm_wrapp');
+            if(commWrapp){
+                if(!commWrapp.querySelector('.clear_reset')){
+                    commWrapp.insertAdjacentHTML('beforeend',
+                                                 '<input type="button" class="clear_reset" value="✖">'); }
+
+                let clear_reset=commWrapp.querySelector('.clear_reset');
+                if(clear_reset){
+                    clear_reset.onclick=function(){
+                        clear_reset.remove();
+
+                        let aid_comm=document.querySelector('#aid_comm');
+                        if(aid_comm){
+                            aid_comm.remove(); }
+
+                        history.pushState('0', '0', location.href.replace(/#cbox/, '')); }} //「#cbox」削除
+
+
+                let commMore=
+                    document.querySelector('[data-uranus-component="commentsMoreButton"]');
+                if(commMore){
+                    commMore.click(); }
+
+
+                let commMore_o=
+                    document.querySelector('#commentListMoreLink');
+                if(commMore_o){
+                    commMore_o.click(); }}
+
+        } // #cbox付きURLで開かれた場合
+
+    } // main()
+} // 通常のブログページ等
+
+
+
+if(location.href=='https://www.ameba.jp/home'){ //「HOME」画面の場合
+
+    let target1=document.querySelector('head');
+    let monitor1=new MutationObserver(main);
+    monitor1.observe(target1, { childList: true });
+
+    main();
+
+    function main(){
+        let blog_link=document.querySelector('.HomeBlogModule_BlogTitle_Link');
+        if(blog_link){
+            blog_link.setAttribute('target', '_blank'); }
+
+        let lback=document.querySelector('.HomeBlogModule_LookBackEntry_Article');
+        if(lback){
+            lback.setAttribute('target', '_blank'); }
+
+        let brank=document.querySelectorAll('.HomeBlogFeed_Article_BlogRanking_Link');
+        for(let k=0; k<brank.length; k++){
+            brank[k].setAttribute('target', '_blank'); }
+
+        let trankt=document.querySelectorAll('.HomeBlogFeed_Article_TopicsRanking_Top3_Link');
+        for(let k=0; k<trankt.length; k++){
+            trankt[k].setAttribute('target', '_blank'); }
+
+        let trank=document.querySelectorAll('.HomeBlogFeed_Article_TopicsRanking_Item_Link');
+        for(let k=0; k<trank.length; k++){
+            trank[k].setAttribute('target', '_blank'); }
+
+
+        //「コメントした記事」のリンクを直接「コメント欄を開く」仕様に変更
+        add_hash_c();
+
+        let more_c=document.querySelector('.HomeBlogComment .Collection_ReadMore_Button');
+        if(more_c){
+            more_c.onclick=function(){
+                setTimeout(()=>{
+                    add_hash_c(); }, 1000); }}
+
+        function add_hash_c(){
+            let comm_link=document.querySelectorAll('.HomeBlogComment_Collection a');
+            for(let k=0; k<comm_link.length; k++){
+                let href=comm_link[k].getAttribute('href');
+                if(!href.match(/#cbox/)){
+                    comm_link[k].setAttribute('href', href+'#cbox'); }}}
+
+
+        //「スタッフブログ」のリンクを「Shift+Click」で直接「コメント欄を開く」
+        let stuff_link=document.querySelector('.PcModuleNotification_Link');
+        if(stuff_link){
+            stuff_link.onclick=function(event){
+                if(event.shiftKey){
+                    event.preventDefault();
+                    let href=stuff_link.getAttribute('href');
+                    if(!href.match(/#cbox/)){
+                        window.open(href+'#cbox', null, '_blank'); }}}}
+
+
+        //「ブログ管理」のリンクが無い時に代りのボタンを表示
+        setTimeout(()=>{
+            Add_acc(); }, 2000);
+
+        function Add_acc(){
+            let HBT=document.querySelector('.HomeBlogModule_BlogTitle');
+            let HAC=document.querySelector('.HomeBlogModule_Access_Container');
+            if(HBT){
+                if(!HAC){
+                    let hac_h='<a class="HomeBlogModule_Access_Container Tap_Transparent extra" '+
+                        'href="https://blog.ameba.jp/ucs/top.do">管理トップ画面を開く</a>'+
+                        '<style>.HomeBlogModule_Access_Container.extra { position: relative; height: 3px; '+
+                        'padding: 10px 40px 20px; text-align: right; text-decoration: none; } '+
+                        '.HomeBlogModule_Access_Container.extra::before, '+
+                        '.HomeBlogModule_Access_Container.extra::after { top: 6px !important; }</style>';
+
+                    let extra=document.querySelector('.extra');
+                    if(!extra){
+                        HBT.insertAdjacentHTML('afterend', hac_h); }}}}
+
+
+        // 「お知らせ」の表示をシンプルに見易くする
+        notify();
+
+        function notify(){
+            let note_button=document.querySelectorAll('.HomeRedNotification_Item button');
+            for(let k=0; k<note_button.length; k++){
+                note_button[k].style.margin='2px 0';
+                let n_span=note_button[k].querySelector('span');
+                ellipsis(n_span);
+                if(n_span){
+                    if(n_span.textContent.includes('あなたのブログ記事に新しくいいね！')){
+                        n_span.innerHTML=short_i(n_span); }
+                    else if(n_span.textContent.includes('に承認待ちコメントがあります')){
+                        n_span.innerHTML=short_c1(n_span); }
+                    else if(n_span.textContent.includes('に承認待ちのコメントがつきました')){
+                        n_span.innerHTML=short_c2(n_span); }
+                    else if(n_span.textContent.includes('にコメントしました')){
+                        n_span.innerHTML=short_c3(n_span); }
+                    else if(n_span.textContent.includes('へのコメントが承認されました')){
+                        n_span.innerHTML=short_c4(n_span); }
+                    else if(n_span.textContent.includes('メッセージが届きました')){
+                        n_span.innerHTML=short_m(n_span); }
+                    else if(n_span.textContent.includes('さんがフォロワーになりました')){
+                        n_span.innerHTML=short_f(n_span); }
+                    else if(n_span.textContent.includes('さんからフォロー申請が届いています')){
+                        n_span.innerHTML=short_f1(n_span); }
+                    else if(n_span.textContent.includes('さんがフォロー申請を承認しました')){
+                        n_span.innerHTML=short_f2(n_span); }
+                    else if(n_span.textContent.includes('さんからアメンバー申請が届いています')){
+                        n_span.innerHTML=short_a(n_span); }
+                    else if(n_span.textContent.includes('さんがアメンバー申請を承認しました')){
+                        n_span.innerHTML=short_a1(n_span); }
+                    else if(n_span.textContent.includes('マンガクーポンが')){
+                        n_span.innerHTML=short_b(n_span); }
+                }}
+
+
+            function short_i(n_p){
+                return 'いいね！<b style="color: #aaa">✤</b> ブログにいいね！がつきました'; }
+
+            function short_c1(n_p){
+                let np=n_p.textContent;
+                np=np.substring(0, np.indexOf('コメントがあります'));
+                return 'コメント<b style="color: red">✤</b> '+ np; }
+
+            function short_c2(n_p){
+                let np=n_p.textContent;
+                np=np.substring(0, np.indexOf('のコメントがつきました'));
+                return 'コメント<b style="color: red">✤</b> '+ np; }
+
+            function short_c3(n_p){
+                let np=n_p.textContent;
+                np=np.substring(0, np.indexOf('コメントしました'));
+                return 'コメント<b style="color: red">✤</b> '+ np; }
+
+            function short_c4(n_p){
+                let np=n_p.textContent;
+                np=np.substring(0, np.indexOf('が承認されました'));
+                return 'コメント承認済<b style="color: red">✤</b> '+ np; }
+
+            function short_m(n_p){
+                let np=n_p.textContent;
+                np=np.substring(0, np.indexOf('メッセージが届きました'));
+                return 'メッセージ<b style="color: #ff9800">✤</b> '+ np +'着信'; }
+
+            function short_f(n_p){
+                let np=n_p.textContent;
+                np=np.substring(0, np.indexOf('がフォロワーになりました'));
+                return 'フォロー<b style="color: #4caf50">✤</b> '+ np +'がフォロー'; }
+
+            function short_f1(n_p){
+                let np=n_p.textContent;
+                np=np.substring(0, np.indexOf('からフォロー申請が届いています'));
+                return 'フォロー申請<b style="color: #4caf50">✤</b> '+ np +'が申請'; }
+
+            function short_f2(n_p){
+                let np=n_p.textContent;
+                np=np.substring(0, np.indexOf('がフォロー申請を承認しました'));
+                return 'フォロー承認済<b style="color: #4caf50">✤</b> '+ np +'が承認'; }
+
+            function short_a(n_p){
+                let np=n_p.textContent;
+                np=np.substring(0, np.indexOf('からアメンバー申請が届いています'));
+                return 'アメンバー申請<b style="color: #2196f3">✤</b> '+ np +'が申請'; }
+
+            function short_a1(n_p){
+                let np=n_p.textContent;
+                np=np.substring(0, np.indexOf('がアメンバー申請を承認しました'));
+                return 'アメンバー承認済<b style="color: #2196f3">✤</b> '+ np +'が承認'; }
+
+            function short_b(n_p){
+                let np=n_p.textContent;
+                np=np.substring(np.indexOf('マンガクーポンが') + 8);
+                np=np.substring(0, np.indexOf('あります。'));
+                if(np.includes('件')){
+                    np=np +'あります'; }
+                else{
+                    np='1件あります'; }
+                return 'マンガクーポン <b style="color: #2196f3">▩</b> '+ np; }
+
+            function ellipsis(n_p){
+                n_p.style.cssText=
+                    'display: block; width: 340px; padding-left: 5px; '+
+                    'overflow: hidden; white-space: nowrap; text-overflow: ellipsis; '; }}
+
+
+        /* 📛📛📛 マンガクーポンを非表示にする場合は このコメントアウト行を消す
+        // マンガクーポンを非表示にする
+        let HRN_I=document.querySelectorAll('.HomeRedNotification_Item');
+        for(let k=0; k<HRN_I.length; k++){
+            let text=HRN_I[k].textContent;
+            if(text.includes('マンガクーポン')){
+                HRN_I[k].remove(); }}
+        📛📛📛 このコメントアウト行を消す */
 
     } // main()
 
-} // HOMEページで有効
+
+
+    //「フォローフィード」のリンクを「Shift+Click」で直接「コメント欄を開く」
+    let target2=document.querySelector('.HomeChecklist');
+    let monitor2=new MutationObserver(add_hash_f);
+    monitor2.observe(target2, {childList: true, subtree: true});
+
+    function add_hash_f(){
+        let HCCI=document.querySelectorAll('.HomeChecklist_Collection_Item');
+        for(let k=0; k<HCCI.length; k++){
+            let HCA_link=HCCI[k].querySelector('a.HomeChecklist_Article_Link');
+            if(HCA_link){
+                HCA_link.onclick=function(event){
+                    if(event.shiftKey){
+                        event.preventDefault();
+                        let href=HCA_link.getAttribute('href');
+                        window.open(href+'#cbox', null, '_blank');
+                        setTimeout(()=>{
+                            all_item_rest();
+                        }, 1000); }}}}
+
+
+        document.onkeydown=function(event){
+            if(event.shiftKey){
+                let HCCI=document.querySelectorAll('.HomeChecklist_Collection_Item');
+                for(let k=0; k<HCCI.length; k++){
+                    let M_icon=HCCI[k].querySelector('.HomeChecklist_Article_Meta_Icon');
+                    if(M_icon){
+                        HCCI[k].style.boxShadow='-8px 0 0 #cfd8dc'; }}}}
+
+
+        document.onkeyup=function(event){
+            if(!event.shiftKey){
+                all_item_rest(); }}
+
+
+        function all_item_rest(){
+            let HCCI=document.querySelectorAll('.HomeChecklist_Collection_Item');
+            for(let k=0; k<HCCI.length; k++){
+                HCCI[k].style.boxShadow=''; }}
+
+    } // add_hash_f()
+
+} //「HOME」画面の場合
 
 
 
-if(document.querySelector('#readerList')){ // フォロー管理ページで有効
-    let user_id;
-    let win_url;
+if(location.href=='https://www.ameba.jp/notifications'){ //「お知らせ」画面の場合
 
-    let target=document.querySelector('body'); // 監視 target
-    let monitor=new MutationObserver(table_view);
-    monitor.observe(target, {childList: true, subtree: true}); // 監視開始
-
-    function table_view(){ // HOMEから遷移して来た最初の管理画面でのみ動作する
-        let k;
-        let tr_href=[];
-        let find=0;
-
-        win_url=window.location.search.substring(1,window.location.search.length);
-
-        if(win_url !='' && win_url.indexOf('pageID') ==-1){ // URLにuser_idが有る場合
-            user_id=win_url;
-            let write_json=JSON.stringify(user_id);
-            sessionStorage.setItem('followfeedcheck_id', write_json); // セッションストレージ名
-
-            let table_tr=document.querySelectorAll('.tableList tbody tr');
-            for(k=0; k<table_tr.length; k++){
-                tr_href[k]=table_tr[k].querySelector('td.title a').getAttribute('href');
-                if(tr_href[k].indexOf(user_id) !=-1){
-                    find=1;
-                    table_tr[k].style.outline='2px solid red';
-                    table_tr[k].scrollIntoView({block: 'center'});
-                    status();
-                    return; }} // 検索処理を終了
-
-            if(find==0){ // user_idが見つからないと2ページへ移動
-                let pager=document.querySelector('.pagingArea');
-                let end=document.querySelector('.pagingArea .disabled.next');
-                if(!end && pager){ // ページング末尾で無ければ2ページへ
-                    let url_str='https://blog.ameba.jp/ucs/blgfavorite/favoritelist.do?pageID=2&More';
-                    window.open( url_str, '_self'); }}} // URLにuser_idが有る場合
-
-        else if(win_url.indexOf('&More') !=-1){ // URLに&Moreが有る場合のみ
-            let read_json=sessionStorage.getItem('followfeedcheck_id'); // &Moreページで再読込み
-            if(JSON.parse(read_json)){
-                user_id=JSON.parse(read_json); }
-
-            let table_tr=document.querySelectorAll('.tableList tbody tr');
-            for(k=0; k<table_tr.length; k++){
-                tr_href[k]=table_tr[k].querySelector('td.title a').getAttribute('href');
-                if(tr_href[k].indexOf(user_id) !=-1){
-                    find=1;
-                    table_tr[k].style.outline='2px solid red';
-                    table_tr[k].scrollIntoView({block: 'center'});
-                    status(); // 非公開への自動変更機能の待機
-                    return; }} // 検索処理を終了
-
-            if(find==0){ // user_idが見つからないと次ページへ移動
-                let end=document.querySelector('.pagingArea .disabled.next');
-                if(!end){ // ページング末尾で無ければ次ページへ
-                    let page_n=win_url.replace(/[^0-9]/g, '');
-                    page_n=parseInt(page_n, 10) +1;
-                    let url_str=['https://blog.ameba.jp/ucs/blgfavorite/favoritelist.do?pageID=',
-                                 + page_n + '&More'].join('');
-                    window.open( url_str, '_self'); }}}
-
-        else{ //  HOMEからの遷移ではなく、単独でフォロー管理を開いた場合
-            status(); }
-
-    } // table_view()
-
-
-    function status(){ //「公開フォロー」を「非公開」に変更
-        let k;
-        let blog_id=[];
-        let status_span=[];
-        let del_button=[];
-        let blog_name=document.querySelectorAll('input[name="blog_name"]');
-        let table_tr=document.querySelectorAll('.tableList tbody tr');
-
-        let info=document.createElement('div');
-        info.textContent="「承認済み」ボタンをクリックすると"+
-            "「公開フォロー」を「非公開フォロー」に自動的に変更します";
-        info.style.margin='6px 0 -12px';
-        info.style.padding='2px 6px 1px';
-        info.style.color='#fff';
-        info.style.background='#2196f3';
-        let box=document.querySelector('#ucsMainLeft #notes');
-        if(!box.querySelector('div')){
-            box.appendChild(info); }
-
-        for(k=0; k<table_tr.length; k++){
-            blog_id[k]=blog_name[k].getAttribute('value');
-            del_button[k]=table_tr[k].querySelector('.btnDelete');
-            status_span[k]=table_tr[k].querySelector('.status span');
-            if(status_span[k].classList.contains('open')==true){
-                status_span[k].style.borderRadius='3px';
-                status_span[k].style.boxShadow='0 0 0 2px #2196f3';
-                status_span[k].style.cursor='pointer';
-                win_open(status_span[k], blog_id[k], del_button[k]); }}
-
-
-        function win_open(span, id, del){ // 公開→非公開の自動変更
-            span.onclick=function(){
-                del.click();
-                setTimeout(()=>{ // 対象ブログの削除ボタンを押す
-                    let ok=document.querySelector('.minimumApplyButton a:first-child');
-                    ok.click();
-                }, 20);
-                setTimeout(()=>{ // 対象ブログを非公開フォローする
-                    let follow_url='https://blog.ameba.jp/reader.do?bnm=' + id + '&status=close';
-                    window.open( follow_url, '_blank', 'top=0, left=0, width=480, height=360');
-                }, 500); }}} // 処理を待ってから次のステップを実行
-
-} // フォロー管理ページで有効
+    let pc_logo=document.querySelector('h1.PcHeader_Logo');
+    if(pc_logo){
+        pc_logo.onclick=function(e){
+            e.preventDefault();
+            window.location.href='https://www.ameba.jp/home'; }}
 
 
 
-if(document.querySelector('#header.rd-header')){ // フォロー登録画面で有効
-    let css=[
-        'body { font-family: Meiryo; background: #cfd8dc; }',
-        '#ambHeader { min-width: 400px !important; }',
-        '#header.rd-header { display: flex; justify-content: center; width: auto; ',
-        'padding: 20px 0 14px !important; }',
-        '#contentsArea.rd-contentsArea { width: 400px !important; margin: 0 auto; }',
-        '#mainCol.rd-mainCol { padding-top: 40px; }',
-        '#contentsArea.rd-contentsArea._end { width: 400px; margin: 0 auto; }',
-        '.rd-contentsArea._end #mainCol.rd-mainCol { padding: 20px 0 0; }',
-        '.rd-checkList { margin: 15px 0; } .rd-error .error { font-size: 18px; font-weight: bold; }',
-        '.rd-selectArea { width: 394px; } .rd-regist { padding: 15px; }',
-        '.rd-radioArea { margin: 0; } .rd-radioLabel { font-size: 16px; }',
-        '.rd-radioLabel:before { left: -23px; width: 14px; height: 14px; margin-top: -8px; }',
-        '.rd-radioLabel:after { left: -24px; width: 14px; height: 14px; margin-top: -9px; ',
-        'border: 1px solid #88bae6; }',
-        '#ambHeaderRight, #ambFooter { display: none; }',
-        '.rd-explanationSmall, .rd-amemberArea, .rd-browserPushArea, .rd-monsterBnr, ',
-        '.rd-explanation, .rd-explanationSub, .rd-radioExplanation, .rd-infoMail, ',
-        '.rd-followManagementLink { display: none; }' ].join(' ');
+    let target3=document.querySelector('head');
+    let monitor3=new MutationObserver(add_hash_n);
+    monitor3.observe(target3, { childList: true });
 
-    let style=document.createElement('style');
-    style.insertAdjacentHTML('afterbegin', css);
-    let head=document.getElementsByTagName('head')[0];
-    head.appendChild(style);
+    add_hash_n();
 
-    let target=document.querySelector('body'); // 監視 target
-    let monitor=new MutationObserver(ffcheker_do);
-    monitor.observe(target, {childList: true, subtree: true}); // 監視開始
+    function add_hash_n(){
+        let notifi_link=document.querySelectorAll('.NotificationListItem');
+        for(let k=0; k<notifi_link.length; k++){
+            let href=notifi_link[k].getAttribute('href');
+            if(href.match(/comment-/) && !href.match(/#cbox/)){ //「コメント承認」のお知らせ
+                notifi_link[k].setAttribute('href', href+'#cbox');
+                notifi_link[k].setAttribute('target', '_blank');
+                notifi_link[k].style.boxShadow='inset 8px 0 0 #cfd8dc'; }}
 
-    function ffcheker_do(){
-        let win_url=window.location.search.substring(1,window.location.search.length);
-        if(win_url.indexOf('status=close')!=-1){
-            if(!document.querySelector('.rd-error._whole .error')){ // 既にフォローしていない事が条件
-                setTimeout(()=>{ // 非公開でフォローするにチェックを入れる
-                    document.querySelector('#secInValidateNumber_01').checked=true;
-                }, 20);
-                setTimeout(()=>{ //「フォロー」決定ボタンを押す
-                    document.querySelector('.rd-btnSubmit').click();
-                }, 40);
-                setTimeout(()=>{ // フォロー管理のトップを開く
-                    let top_href='https://blog.ameba.jp/ucs/blgfavorite/favoritelist.do';
-                    window.opener.location.href=top_href;
-                }, 500); }}} // 処理の結果をフォロー管理画面に反映
 
-} // フォロー登録画面で有効
+        let mannga_count=0;
+        for(let k=0; k<notifi_link.length; k++){
+            let href=notifi_link[k].getAttribute('href');
+            if(href.match(/dokusho-ojikan.jp/)){ //「マンガクーポン」のお知らせ
+                mannga_count+=1;
+                if(mannga_count>1){
+                    notifi_link[k].remove(); }}}
+
+    } //  add_hash_n()
+
+} //「お知らせ」画面の場合
+
+
+
+if(location.pathname.startsWith('/ucs/comment/commentlist')){ //「コメント管理」画面の場合
+
+    let UL_link=document.querySelectorAll('.userList__titleLink');
+    for(let k=0; k<UL_link.length; k++){
+        UL_link[k].onclick=function(event){
+            if(event.shiftKey){
+                event.preventDefault();
+                let href=UL_link[k].getAttribute('href');
+                window.open(href+'#cbox', null, '_blank');
+                setTimeout(()=>{
+                    all_item_rest();
+                }, 1000); }}}
+
+
+    document.onkeydown=function(event){
+        if(event.shiftKey){
+            let ULI=document.querySelectorAll('.userList__item');
+            for(let k=0; k<ULI.length; k++){
+                ULI[k].style.boxShadow='-1px 0 #fff, -8px 0 #cfd8dc'; }}}
+
+
+    document.onkeyup=function(event){
+        if(!event.shiftKey){
+            all_item_rest(); }}
+
+
+    function all_item_rest(){
+        let ULI=document.querySelectorAll('.userList__item');
+        for(let k=0; k<ULI.length; k++){
+            ULI[k].style.boxShadow=''; }}
+
+} //「コメント管理」画面の場合
+
+
+
+if(location.pathname=='/ucs/iine/list.html'){ //「いいね！履歴」ページで有効
+    if(document.referrer=='https://www.ameba.jp/'){
+        window.location.href='https://blog.ameba.jp/ucs/top.do'; }}
