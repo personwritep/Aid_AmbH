@@ -1,0 +1,740 @@
+// ==UserScript==
+// @name         Aid AmbH
+// @namespace    http://tampermonkey.net/
+// @version      2.0
+// @description  「HOME」「ブログ」のリンク動作を改善
+// @author       Ameba blog User
+// @match        https://ameblo.jp/*
+// @match        https://secret.ameba.jp/*
+// @match        https://www.ameba.jp/home
+// @match        https://www.ameba.jp/notifications
+// @match        https://blog.ameba.jp/ucs/comment/commentlist*
+// @match        https://blog.ameba.jp/ucs/iine/*
+// @match        https://msg.ameba.jp/*
+// @noframes
+// @grant        none
+// ==/UserScript==
+
+
+if(location.hostname=='ameblo.jp' || location.hostname=='secret.ameba.jp'){ // 通常のブログページ
+    let once=0; // 処理の複数回動作を抑止
+
+    let target0=document.querySelector('head');
+    let monitor0=new MutationObserver(main);
+    monitor0.observe(target0, { childList: true });
+
+    main();
+
+    function main(){
+        let amember=
+            document.querySelector('[data-uranus-component="amemberLabel"]');
+
+        let toHome;
+        if(!amember){
+            toHome=document.querySelector('._2sLQpDcQ:nth-child(2)'); }
+        else if(amember){
+            toHome=document.querySelector('.-ameblo-cmnhf-mypage a'); }
+
+
+        let css;
+        if(!amember){
+            let amb_header=document.querySelector('#ambHeader');
+            let icon=document.querySelectorAll('._2sLQpDcQ svg');
+            if(icon.length=='3'){
+                let svg0=
+                    '<svg width="24" height="24" viewBox="0 0 64 64">'+
+                    '<g transform="translate(0,64) scale(0.1,-0.1)">'+
+                    '<path d="M212 558 c-7 -7 -12 -35 -12 -64 0 -28 -7 -68 -15 -87 -8 '+
+                    '-20 -15 -66 -15 -104 0 -61 -3 -69 -27 -89 -32 -25 -27 -60 8 -49 14 '+
+                    '5 25 2 30 -6 8 -11 12 -10 24 5 15 20 15 20 15 -1 0 -11 -9 -28 -20 -38 '+
+                    '-31 -28 -8 -47 54 -43 44 3 51 6 54 25 4 30 20 30 24 1 3 -20 10 -23 54 '+
+                    '-26 62 -4 85 15 54 43 -11 10 -20 27 -20 38 0 21 0 21 15 1 12 -15 16 '+
+                    '-16 24 -5 5 8 16 11 30 6 35 -11 40 24 8 49 -25 20 -27 28 -27 91 -1 39 '+
+                    '-7 88 -15 110 -8 22 -15 61 -15 86 0 30 -6 51 -15 59 -13 11 -21 8 -48 '+
+                    '-18 -42 -41 -75 -41 -112 -2 -32 34 -36 35 -53 18z m38 -148 c0 -5 -4 '+
+                    '-10 -10 -10 -5 0 -10 5 -10 10 0 6 5 10 10 10 6 0 10 -4 10 -10z m150 '+
+                    '0 c0 -5 -4 -10 -10 -10 -5 0 -10 5 -10 10 0 6 5 10 10 10 6 0 10 -4 10 '+
+                    '-10z m-103 -28 c-19 -20 -7 -42 23 -42 30 0 42 22 23 42 -16 18 -16 18 '+
+                    '3 12 26 -9 64 -45 64 -60 0 -6 -7 -18 -16 -25 -14 -11 -21 -11 -45 3 -27 '+
+                    '16 -31 16 -58 0 -24 -14 -31 -14 -45 -3 -9 7 -16 19 -16 25 0 20 48 59 '+
+                    '79 65 2 1 -3 -7 -12 -17z m61 -128 c33 -23 27 -73 -10 -94 -25 -13 -31 '+
+                    '-13 -55 0 -38 21 -44 71 -11 94 12 9 29 16 38 16 9 0 26 -7 38 -16z"/>'+
+                    '</g></svg>';
+
+                let svg1=
+                    '<svg width="24" height="24" viewBox="0 0 64 64">'+
+                    '<g transform="translate(0,64) scale(0.1,-0.1)">'+
+                    '<path d="M255 506 c-74 -33 -95 -88 -95 -256 0 -117 2 -132 20 -150 '+
+                    '24 -24 48 -25 78 -4 17 12 22 25 22 59 l0 44 35 -6 c105 -17 213 93 '+
+                    '191 194 -23 105 -148 164 -251 119z m119 -112 c20 -20 20 -43 0 -72 '+
+                    '-18 -26 -50 -28 -76 -5 -36 33 -13 93 37 93 13 0 31 -7 39 -16z"/>'+
+                    '</g></svg>';
+
+                let svg2=
+                    '<svg width="24" height="24" viewBox="0 0 64 64">'+
+                    '<g transform="translate(0,64) scale(0.1,-0.1)">'+
+                    '<path d="M267 519 c-48 -28 -61 -116 -23 -154 87 -87 217 6 161 115 '+
+                    '-8 16 -24 34 -34 40 -25 13 -81 12 -104 -1z"/>'+
+                    '<path d="M255 291 c-51 -23 -101 -79 -116 -132 -20 -64 -7 -69 181 -69 '+
+                    '188 0 201 5 181 69 -15 53 -65 109 -116 132 -50 23 -80 23 -130 0z"/>'+
+                    '</g></svg>';
+
+                set_svg(0, svg0);
+                set_svg(1, svg1);
+                set_svg(2, svg2);
+
+                function set_svg(n, path){
+                    let svg_d=document.createElement('div');
+                    svg_d.id='svg_d'+n;
+                    svg_d.innerHTML=path;
+                    if(!amb_header.querySelector('#svg_d'+n)){
+                        icon[n].parentNode.replaceChild(svg_d, icon[n]); }}}
+
+            css=
+                '._2sLQpDcQ svg { '+
+                'border: 1px solid #aaa; border-radius: 4px; transition: .2s;'+
+                'padding: 0 2px; margin: 0 4px 0 15px; vertical-align: -9px; } '+
+                '#svg_d0 svg { fill: #009688; } '+
+                '#svg_d1 svg { fill: #ff9800; } '+
+                '#svg_d2 svg { fill: #607d8b; } '+
+                '._2sLQpDcQ svg { transition: .2s; } '+
+                '._2sLQpDcQ:hover { opacity: 1; } '+
+                '._2sLQpDcQ:hover svg { fill: #fff !important; background: #2196f3; }'; }
+
+
+        else if(amember){
+            css=
+                '#ambHeader a:hover { text-decoration: none; } '+
+                '#ambHeader .-ameblo-cmnhf-icon { '+
+                'width: auto !important; height: 17px !important; '+
+                'margin: 0 4px 0 15px !important; padding: 2px 1px 3px 1px !important; '+
+                'border: 1px solid #aaa; border-radius: 4px; '+
+                'vertical-align: -8px !important; background-image: none !important; } '+
+                '#ambHeader .-ameblo-cmnhf-icon:before { '+
+                'font: 24px/19px ameba-symbols; transition: .2s; } '+
+                '.-ameblo-cmnhf-mypage .-ameblo-cmnhf-icon:before { '+
+                'content: "\\EA1e"; color: #009688; } '+
+                '.-ameblo-cmnhf-mypage:hover .-ameblo-cmnhf-icon { '+
+                'background: #2196f3 !important; } '+
+                '.-ameblo-cmnhf-mypage:hover .-ameblo-cmnhf-icon:before { '+
+                'color: #fff !important; } '+
+                '.-ameblo-cmnhf-pigg .-ameblo-cmnhf-icon:before { '+
+                'content: "\\EA3b"; color: #ff9800; } '+
+                '.-ameblo-cmnhf-pigg:hover .-ameblo-cmnhf-icon { '+
+                'background: #2196f3 !important; } '+
+                '.-ameblo-cmnhf-pigg:hover .-ameblo-cmnhf-icon:before { '+
+                'color: #fff !important; } '+
+                '.-ameblo-cmnhf-blog .-ameblo-cmnhf-icon:before { '+
+                'content: "\\EA31"; color: #607d8b; } '+
+                '.-ameblo-cmnhf-blog:hover .-ameblo-cmnhf-icon { '+
+                'background: #2196f3 !important; } '+
+                '.-ameblo-cmnhf-blog:hover .-ameblo-cmnhf-icon:before { '+
+                'color: #fff !important; }'; }
+
+        let base=document.querySelector('body');
+        let style=document.createElement('style'); // ambHeader のアレンジ
+        style.setAttribute("id", "aambh_style");
+        style.innerHTML=css;
+        if(!base.querySelector('#aambh_style')){
+            base.appendChild(style); }
+
+
+        toHome.addEventListener('click', function(event){
+            event.preventDefault();
+            if(event.shiftKey){
+                location.href='https://www.ameba.jp/'; }
+            else{
+                if(document.referrer=='https://www.ameba.jp/'){
+                    window.close(); }
+                else{
+                    window.location.href='https://www.ameba.jp/'; }}});
+
+
+
+        if(location.hash=='#cbox'){ // #cbox付きURLで開かれた場合
+            if(!document.querySelector('#aid_comm')){
+                document.documentElement.insertAdjacentHTML(
+                    'beforeend',
+                    '<style id="aid_comm">'+
+                    'html { scroll-behavior: unset; } '+
+                    'body { zoom: unset !important; '+
+                    'transform: unset !important; width: unset !important; } '+
+                    '.comm_wrapp { '+
+                    'display: flex; flex-direction: column; '+
+                    'position: fixed !important; z-index: 100 !important; '+
+                    'top: 60px; left: calc(50% - 360px); '+
+                    'width: 620px; margin: 0; padding:20px 60px 20px 40px !important; '+
+                    'max-height: 80vh; overflow-y: auto; color: #000; background: #fff; '+
+                    'border: 2px solid #aaa; box-shadow: 0 0 0 100vw rgb(0 0 0 / 25%); } '+
+                    '.comm_wrapp *:not([data-uranus-icon]) '+
+                    '{ font: 16px Meiryo; color: #000 !important; } '+
+                    '.comm_wrapp .clear_reset { position: absolute; top: 20px; right: 15px; '+
+                    'height: 26px; width: 26px; padding: 0 5px; cursor: pointer; } '+
+
+                    // 新タイプスキン
+                    '.skin-bgQuiet { background: #f6f8f9; } '+
+                    '.skin-borderLoud, .skin-borderQuiet { border-color: #888; } '+
+                    '#commentsHeader { margin-top: 0; } '+
+                    '[data-uranus-component="mainWidgetFooter"] { '+
+                    'order: -1; padding: 0; } '+
+                    '[data-uranus-component="mainWidgetFooter"] button, '+
+                    '[data-uranus-component="mainWidgetFooter"] .commentWinOpenBtn { '+
+                    'background: #eceff1; height: 28px; border: 1px solid #777; '+
+                    'border-radius: 3px; } '+
+                    '[data-uranus-component="mainWidgetFooter"] span { '+
+                    'vertical-align: -9px; } '+
+
+                    // 旧タイプスキン
+                    '.skinStrongBgColor { background: #f6f8f9; } '+
+                    '.skinBorderHr, .skinBorderList li { border-color: #888; } '+
+                    '.skinBorderHr { flex-shrink: 0; } '+
+                    '.commentOpenArea.skinWeakColor { display: none; } '+
+                    '.commentBtnArea { order: -1; padding: 0; } '+
+                    '.commentBtnArea .commentWinOpenBtn { '+
+                    'background: #eceff1; height: 28px; border: 1px solid #777; '+
+                    'border-radius: 3px; } '+
+                    '.commentBtnArea span { padding: 3px 0 0; vertical-align: -4px; } '+
+
+                    //レトロタイプスキン
+                    '#comment_module p.list { display: none; } '+
+                    '#comment_module .commentWinOpenBtn { '+
+                    'order: -1; height: 28px; margin: 0 auto; } '+
+
+                    '</style>'); }
+
+
+            if(once==0){
+                let body_height=document.body.scrollHeight;
+                window.scrollTo(0, body_height);
+                once=1; }
+
+
+            let cbox=document.querySelector('#cbox');
+            if(cbox){
+                // 新タイプスキン
+                if(document.querySelector('[data-uranus-component="mainWidget"]')){
+                    let cbox_wrapp=cbox.closest('[data-uranus-component="mainWidget"]');
+                    cbox_wrapp.classList.add('comm_wrapp'); }
+                // 旧タイプスキン
+                else if(document.querySelector('.commentArea')){
+                    document.querySelector('.commentArea').classList.add('comm_wrapp'); }
+                // レトロタイプスキン
+                else if(document.querySelector('#comment_module')){
+                    document.querySelector('#comment_module').classList.add('comm_wrapp'); }}
+
+
+            let commWrapp=document.querySelector('.comm_wrapp');
+            if(commWrapp){
+                if(!commWrapp.querySelector('.clear_reset')){
+                    commWrapp.insertAdjacentHTML('beforeend',
+                                                 '<input type="button" class="clear_reset" value="✖">'); }
+
+                let clear_reset=commWrapp.querySelector('.clear_reset');
+                if(clear_reset){
+                    clear_reset.onclick=function(){
+                        clear_reset.remove();
+
+                        let aid_comm=document.querySelector('#aid_comm');
+                        if(aid_comm){
+                            aid_comm.remove(); }
+
+                        history.pushState('0', '0', location.href.replace(/#cbox/, '')); }} //「#cbox」削除
+
+
+                let commMore=
+                    document.querySelector('[data-uranus-component="commentsMoreButton"]');
+                if(commMore){
+                    commMore.click(); }
+
+
+                let commMore_o=
+                    document.querySelector('#commentListMoreLink');
+                if(commMore_o){
+                    commMore_o.click(); }}
+
+        } // #cbox付きURLで開かれた場合
+
+    } // main()
+} // 通常のブログページ等
+
+
+
+if(location.href=='https://www.ameba.jp/home'){ //「HOME」画面の場合
+    let clean_edit=0; // 表示・非表示設定 作業フラグ
+
+    let target1=document.querySelector('head');
+    let monitor1=new MutationObserver(main);
+    monitor1.observe(target1, { childList: true });
+
+    main();
+
+    function main(){
+        let blog_link=document.querySelector('.HomeBlogModule_BlogTitle_Link');
+        if(blog_link){
+            blog_link.setAttribute('target', '_blank'); }
+
+        let lback=document.querySelector('.HomeBlogModule_LookBackEntry_Article');
+        if(lback){
+            lback.setAttribute('target', '_blank'); }
+
+        let brank=document.querySelectorAll('.HomeBlogFeed_Article_BlogRanking_Link');
+        for(let k=0; k<brank.length; k++){
+            brank[k].setAttribute('target', '_blank'); }
+
+        let trankt=document.querySelectorAll('.HomeBlogFeed_Article_TopicsRanking_Top3_Link');
+        for(let k=0; k<trankt.length; k++){
+            trankt[k].setAttribute('target', '_blank'); }
+
+        let trank=document.querySelectorAll('.HomeBlogFeed_Article_TopicsRanking_Item_Link');
+        for(let k=0; k<trank.length; k++){
+            trank[k].setAttribute('target', '_blank'); }
+
+
+        //「コメントした記事」のリンクを直接「コメント欄を開く」仕様に変更
+        add_hash_c();
+
+        let more_c=document.querySelector('.HomeBlogComment .Collection_ReadMore_Button');
+        if(more_c){
+            more_c.onclick=function(){
+                setTimeout(()=>{
+                    add_hash_c(); }, 1000); }}
+
+        function add_hash_c(){
+            let comm_link=document.querySelectorAll('.HomeBlogComment_Collection a');
+            for(let k=0; k<comm_link.length; k++){
+                let href=comm_link[k].getAttribute('href');
+                if(!href.match(/#cbox/)){
+                    comm_link[k].setAttribute('href', href+'#cbox'); }}}
+
+
+        //「スタッフブログ」のリンクを「Shift+Click」で直接「コメント欄を開く」
+        let stuff_link=document.querySelector('.PcModuleNotification_Link');
+        if(stuff_link){
+            stuff_link.onclick=function(event){
+                if(event.shiftKey){
+                    event.preventDefault();
+                    let href=stuff_link.getAttribute('href');
+                    if(!href.match(/#cbox/)){
+                        window.open(href+'#cbox', null, '_blank'); }}}}
+
+
+        //「ブログ管理」のリンクが無い時に代りのボタンを表示
+        setTimeout(()=>{
+            Add_acc(); }, 2000);
+
+        function Add_acc(){
+            let HBT=document.querySelector('.HomeBlogModule_BlogTitle');
+            let HAC=document.querySelector('.HomeBlogModule_Access_Container');
+            if(HBT){
+                if(!HAC){
+                    let hac_h='<a class="HomeBlogModule_Access_Container Tap_Transparent extra" '+
+                        'href="https://blog.ameba.jp/ucs/top.do">管理トップ画面を開く</a>'+
+                        '<style>.HomeBlogModule_Access_Container.extra { position: relative; height: 3px; '+
+                        'padding: 10px 40px 20px; text-align: right; text-decoration: none; } '+
+                        '.HomeBlogModule_Access_Container.extra::before, '+
+                        '.HomeBlogModule_Access_Container.extra::after { top: 6px !important; }</style>';
+
+                    let extra=document.querySelector('.extra');
+                    if(!extra){
+                        HBT.insertAdjacentHTML('afterend', hac_h); }}}}
+
+
+        // 「お知らせ」の表示をシンプルに見易くする
+        notify();
+
+        function notify(){
+            let note_button=document.querySelectorAll('.HomeRedNotification_Item button');
+            for(let k=0; k<note_button.length; k++){
+                note_button[k].style.margin='2px 0';
+                let n_span=note_button[k].querySelector('span');
+                if(clean_edit==0){
+                    ellipsis(n_span); }
+
+                if(n_span){
+                    if(n_span.textContent.includes('あなたのブログ記事に新しくいいね！')){
+                        n_span.innerHTML=short_i(n_span); }
+                    else if(n_span.textContent.includes('に承認待ちコメントがあります')){
+                        n_span.innerHTML=short_c1(n_span); }
+                    else if(n_span.textContent.includes('に承認待ちのコメントがつきました')){
+                        n_span.innerHTML=short_c2(n_span); }
+                    else if(n_span.textContent.includes('にコメントしました')){
+                        n_span.innerHTML=short_c3(n_span); }
+                    else if(n_span.textContent.includes('へのコメントが承認されました')){
+                        n_span.innerHTML=short_c4(n_span); }
+                    else if(n_span.textContent.includes('メッセージが届きました')){
+                        n_span.innerHTML=short_m(n_span); }
+                    else if(n_span.textContent.includes('さんがフォロワーになりました')){
+                        n_span.innerHTML=short_f(n_span); }
+                    else if(n_span.textContent.includes('さんからフォロー申請が届いています')){
+                        n_span.innerHTML=short_f1(n_span); }
+                    else if(n_span.textContent.includes('さんがフォロー申請を承認しました')){
+                        n_span.innerHTML=short_f2(n_span); }
+                    else if(n_span.textContent.includes('さんからアメンバー申請が届いています')){
+                        n_span.innerHTML=short_a(n_span); }
+                    else if(n_span.textContent.includes('さんがアメンバー申請を承認しました')){
+                        n_span.innerHTML=short_a1(n_span); }
+                    else if(n_span.textContent.includes('マンガクーポンが')){
+                        n_span.innerHTML=short_b(n_span); }
+                }}
+
+
+            function short_i(n_p){
+                return 'いいね！<b style="color: #aaa">✤</b> ブログにいいね！がつきました'; }
+
+            function short_c1(n_p){
+                let np=n_p.textContent;
+                np=np.substring(0, np.indexOf('コメントがあります'));
+                return 'コメント<b style="color: red">✤</b> '+ np; }
+
+            function short_c2(n_p){
+                let np=n_p.textContent;
+                np=np.substring(0, np.indexOf('のコメントがつきました'));
+                return 'コメント<b style="color: red">✤</b> '+ np; }
+
+            function short_c3(n_p){
+                let np=n_p.textContent;
+                np=np.substring(0, np.indexOf('コメントしました'));
+                return 'コメント<b style="color: red">✤</b> '+ np; }
+
+            function short_c4(n_p){
+                let np=n_p.textContent;
+                np=np.substring(0, np.indexOf('が承認されました'));
+                return 'コメント承認済<b style="color: red">✤</b> '+ np; }
+
+            function short_m(n_p){
+                let np=n_p.textContent;
+                np=np.substring(0, np.indexOf('メッセージが届きました'));
+                return 'メッセージ<b style="color: #ff9800">✤</b> '+ np +'着信'; }
+
+            function short_f(n_p){
+                let np=n_p.textContent;
+                np=np.substring(0, np.indexOf('がフォロワーになりました'));
+                return 'フォロー<b style="color: #4caf50">✤</b> '+ np +'がフォロー'; }
+
+            function short_f1(n_p){
+                let np=n_p.textContent;
+                np=np.substring(0, np.indexOf('からフォロー申請が届いています'));
+                return 'フォロー申請<b style="color: #4caf50">✤</b> '+ np +'が申請'; }
+
+            function short_f2(n_p){
+                let np=n_p.textContent;
+                np=np.substring(0, np.indexOf('がフォロー申請を承認しました'));
+                return 'フォロー承認済<b style="color: #4caf50">✤</b> '+ np +'が承認'; }
+
+            function short_a(n_p){
+                let np=n_p.textContent;
+                np=np.substring(0, np.indexOf('からアメンバー申請が届いています'));
+                return 'アメンバー申請<b style="color: #2196f3">✤</b> '+ np +'が申請'; }
+
+            function short_a1(n_p){
+                let np=n_p.textContent;
+                np=np.substring(0, np.indexOf('がアメンバー申請を承認しました'));
+                return 'アメンバー承認済<b style="color: #2196f3">✤</b> '+ np +'が承認'; }
+
+            function short_b(n_p){
+                let np=n_p.textContent;
+                np=np.substring(np.indexOf('マンガクーポンが') + 8);
+                np=np.substring(0, np.indexOf('あります。'));
+                if(np.includes('件')){
+                    np=np +'あります'; }
+                else{
+                    np='1件あります'; }
+                return 'マンガクーポン <b style="color: #2196f3">▩</b> '+ np; }
+
+            function ellipsis(n_p){
+                n_p.style.cssText=
+                    'display: block; width: 340px; padding-left: 5px; '+
+                    'overflow: hidden; white-space: nowrap; text-overflow: ellipsis; '; }}
+
+
+        cleaner();
+
+        function cleaner(){
+            let set_word; // ストレージ登録データ
+            let d_word=[]; // 検索語の配列
+
+            clear_disp(0);
+
+            let HUPB_h3=document.querySelector('.HomeUserProfileBody h3');
+            if(HUPB_h3){
+                HUPB_h3.style.cursor='pointer';
+
+                HUPB_h3.onclick=function(){
+                    clean_edit=1;
+
+                    let clean_box=
+                        '<div id="clean_box">'+
+                        '<input id="word_set" type="text"> '+
+                        '<input id="clean_set" type="button" value="Set">　'+
+                        '<input id="close" type="button" value="✖">'+
+                        '</div>'+
+                        '<style>'+
+                        '#clean_box { position: fixed; top: 70px; left: calc(50% - 540px); '+
+                        'font: normal 16px Meiryo; padding: 20px; background: #fff; '+
+                        'border: 1px solid #aaa; box-shadow: 10px 20px 50px rgb(0 0 0 / 25%); } '+
+                        '@media screen and (max-width: 1140px){ #clean_box { left: 20px; }} '+
+                        '#word_set { width: 300px; padding: 4px 6px 2px; } '+
+                        '#clean_set, #close { padding: 4px 4px 2px; }'+
+                        '</style>';
+
+                    if(!document.querySelector('#clean_box')){
+                        document.body.insertAdjacentHTML('beforeend', clean_box); }
+                    else{
+                        clean_edit=0;
+                        clear_disp(0);
+                        document.querySelector('#clean_box').remove(); }
+
+                    let word_set=document.querySelector('#clean_box #word_set');
+                    let clean_set=document.querySelector('#clean_box #clean_set');
+                    let close=document.querySelector('#clean_box #close');
+                    if(word_set){
+
+                        clear_disp(1);
+
+                        word_set.value=set_word; // 初期値を表示
+                        word_set.addEventListener('change', function(){
+                            let input_word=word_set.value;
+                            clean_set.onclick=function(){
+                                let tmp_word=input_word.split(/[\x20\u3000]/);
+                                tmp_word.forEach((val)=>{
+                                    val=val.replace(/\s/g, ''); }) // 配列全要素から再度 空白文字を削除
+                                tmp_word=tmp_word.filter(Boolean); // 空要素を削除
+                                word_set.value=tmp_word.join(' ');
+                                set_word=word_set.value;
+                                let write_json=JSON.stringify(set_word);
+                                localStorage.setItem('aid_ambh_set', write_json); // ローカルストレージ保存
+
+                                clear_disp(1); }});
+
+                        close.onclick=function(){
+                            clean_edit=0;
+                            clear_disp(0);
+                            document.querySelector('#clean_box').remove(); }
+                    }}}
+
+
+            function clear_disp(n){
+                let HUPB_h3=document.querySelector('.HomeUserProfileBody h3');
+
+                let read_json=localStorage.getItem('aid_ambh_set'); // ローカルストレージ保存名
+                set_word=JSON.parse(read_json);
+                if(set_word==null){
+                    set_word=''; }
+
+                d_word=set_word.split(/\x20/);
+                let reg_text=d_word.join('|');
+                let regexp=new RegExp(reg_text);
+
+                let count=0;
+                let HRN_I=document.querySelectorAll('.HomeRedNotification_Item');
+                for(let k=0; k<HRN_I.length; k++){
+                    let text=HRN_I[k].textContent;
+                    let button=HRN_I[k].querySelector('button');
+                    let span=HRN_I[k].querySelector('span');
+                    if(set_word!='' && regexp.test(text)){ // 設定した語がヒットする場合
+                        count+=1;
+                        if(n==0 && clean_edit==0){
+                            HRN_I[k].style.display='none';
+                            button.style.pointerEvents='auto';
+                            button.style.userSelect='none';
+                            span.style.whiteSpace='nowrap'; }
+                        if(n==1){
+                            HRN_I[k].style.display='list-item';
+                            HRN_I[k].style.background='#e4ecf1';
+                            button.style.pointerEvents='none';
+                            button.style.userSelect='auto';
+                            span.style.whiteSpace=''; }}
+                    else{
+                        if(n==0 && clean_edit==0){
+                            HRN_I[k].style.display='list-item';
+                            button.style.pointerEvents='auto';
+                            button.style.userSelect='none';
+                            span.style.whiteSpace='nowrap'; }
+                        if(n==1){
+                            HRN_I[k].style.display='list-item';
+                            HRN_I[k].style.background='';
+                            button.style.pointerEvents='none';
+                            button.style.userSelect='auto';
+                            span.style.whiteSpace=''; }}}
+
+                let titlebadge=document.querySelector('.PcToggleModule_TitleBadge');
+                if(titlebadge){
+                    HRN_I.length - count
+                    titlebadge.textContent=HRN_I.length - count;
+                    if(count>0){
+                        if(HUPB_h3){
+                            let svg3=
+                                '<span class="db" style="margin-left: 6px;">'+
+                                '<svg height="24" width="24" viewBox="0 -72 340 340" '+
+                                'style="margin-top: -9px; overflow: visible;">'+
+                                '<path d="M169 30C138 34 110 43 86 62C70 75 57 91 47 '+
+                                '109C7 183 41 280 117 315C142 326 171 330 198 327C219 '+
+                                '324 240 317 258 305C272 297 284 286 294 274C343 217 '+
+                                '337 129 286 75C269 57 248 45 225 37C208 32 187 28 '+
+                                '169 30z" style="fill:#a1c5d7;"></path>'+
+                                '<path d="M140 62L140 140L218 140L218 62L140 62M61 '+
+                                '141L61 219L139 219L139 141L61 141M219 141L219 '+
+                                '219L297 219L297 141L219 141M140 220L140 298L218 '+
+                                '298L218 220L140 220z" style="fill:#fff;"></path></svg>'+
+                                '<span style="font: bold 13px/10px Meiryo; color: #aaa; '+
+                                'vertical-align: -3px;">'+
+                                count +'</span></span>';
+
+                            if(!HUPB_h3.querySelector('.db')){
+                                HUPB_h3.insertAdjacentHTML('beforeend', svg3); }}}
+                    else{
+                        if(HUPB_h3.querySelector('.db')){
+                            HUPB_h3.querySelector('.db').remove(); }}}
+            } // clear_disp(n)
+        } // cleaner()
+
+    } // main()
+
+
+
+    //「フォローフィード」のリンクを「Shift+Click」で直接「コメント欄を開く」
+    let target2=document.querySelector('.HomeChecklist');
+    let monitor2=new MutationObserver(add_hash_f);
+    monitor2.observe(target2, {childList: true, subtree: true});
+
+    function add_hash_f(){
+        let HCCI=document.querySelectorAll('.HomeChecklist_Collection_Item');
+        for(let k=0; k<HCCI.length; k++){
+            let HCA_link=HCCI[k].querySelector('a.HomeChecklist_Article_Link');
+            if(HCA_link){
+                HCA_link.onclick=function(event){
+                    if(event.shiftKey){
+                        event.preventDefault();
+                        let href=HCA_link.getAttribute('href');
+                        window.open(href+'#cbox', null, '_blank');
+                        setTimeout(()=>{
+                            all_item_rest();
+                        }, 1000); }}}}
+
+
+        document.onkeydown=function(event){
+            if(event.shiftKey){
+                let HCCI=document.querySelectorAll('.HomeChecklist_Collection_Item');
+                for(let k=0; k<HCCI.length; k++){
+                    let M_icon=HCCI[k].querySelector('.HomeChecklist_Article_Meta_Icon');
+                    if(M_icon){
+                        HCCI[k].style.boxShadow='-8px 0 0 #cfd8dc'; }}}}
+
+
+        document.onkeyup=function(event){
+            if(!event.shiftKey){
+                all_item_rest(); }}
+
+
+        function all_item_rest(){
+            let HCCI=document.querySelectorAll('.HomeChecklist_Collection_Item');
+            for(let k=0; k<HCCI.length; k++){
+                HCCI[k].style.boxShadow=''; }}
+
+    } // add_hash_f()
+
+} //「HOME」画面の場合
+
+
+
+if(location.href=='https://www.ameba.jp/notifications'){ //「お知らせ」画面の場合
+
+    let pc_logo=document.querySelector('h1.PcHeader_Logo');
+    if(pc_logo){
+        pc_logo.onclick=function(e){
+            e.preventDefault();
+            window.location.href='https://www.ameba.jp/home'; }}
+
+
+
+    let target3=document.querySelector('head');
+    let monitor3=new MutationObserver(add_hash_n);
+    monitor3.observe(target3, { childList: true });
+
+    add_hash_n();
+
+    function add_hash_n(){
+        let notifi_link=document.querySelectorAll('.NotificationListItem');
+        for(let k=0; k<notifi_link.length; k++){
+            let href=notifi_link[k].getAttribute('href');
+            if(href.match(/comment-/) && !href.match(/#cbox/)){ //「コメント承認」のお知らせ
+                notifi_link[k].setAttribute('href', href+'#cbox');
+                notifi_link[k].setAttribute('target', '_blank');
+                notifi_link[k].style.boxShadow='inset 8px 0 0 #cfd8dc'; }}
+
+
+        let mannga_count=0;
+        for(let k=0; k<notifi_link.length; k++){
+            let href=notifi_link[k].getAttribute('href');
+            if(href.match(/dokusho-ojikan.jp/)){ //「マンガクーポン」のお知らせ
+                mannga_count+=1;
+                if(mannga_count>1){
+                    notifi_link[k].remove(); }}}
+
+        let unei_count=0;
+        for(let k=0; k<notifi_link.length; k++){
+            let message=notifi_link[k].querySelector('.NotificationListItem_Message');
+            if(message.textContent.includes('アメーバ運営局からメッセージが')){ //「運営メッセージ」のお知らせ
+                unei_count+=1;
+                if(unei_count>1){
+                    notifi_link[k].remove(); }}}
+    } //  add_hash_n()
+
+
+} //「お知らせ」画面の場合
+
+
+
+if(location.pathname.startsWith('/ucs/comment/commentlist')){ //「コメント管理」画面の場合
+
+    let UL_link=document.querySelectorAll('.userList__titleLink');
+    for(let k=0; k<UL_link.length; k++){
+        UL_link[k].onclick=function(event){
+            if(event.shiftKey){
+                event.preventDefault();
+                let href=UL_link[k].getAttribute('href');
+                window.open(href+'#cbox', null, '_blank');
+                setTimeout(()=>{
+                    all_item_rest();
+                }, 1000); }}}
+
+
+    document.onkeydown=function(event){
+        if(event.shiftKey){
+            let ULI=document.querySelectorAll('.userList__item');
+            for(let k=0; k<ULI.length; k++){
+                ULI[k].style.boxShadow='-1px 0 #fff, -8px 0 #cfd8dc'; }}}
+
+
+    document.onkeyup=function(event){
+        if(!event.shiftKey){
+            all_item_rest(); }}
+
+
+    function all_item_rest(){
+        let ULI=document.querySelectorAll('.userList__item');
+        for(let k=0; k<ULI.length; k++){
+            ULI[k].style.boxShadow=''; }}
+
+} //「コメント管理」画面の場合
+
+
+
+if(location.pathname=='/ucs/iine/list.html'){ //「いいね！履歴」ページで有効
+    if(document.referrer=='https://www.ameba.jp/'){
+        window.location.href='https://blog.ameba.jp/ucs/top.do'; }}
+
+
+
+if(location.hostname=='msg.ameba.jp'){ //「メッセージ」ページで有効
+    let profile=document.querySelector('.ucsSubenu-item a[title="プロフィール"]');
+    if(profile){
+        profile.textContent='管理トップ';
+        profile.title='管理トップ';
+        profile.target='_self';
+        profile.href='https://blog.ameba.jp/ucs/top.do';
+        let css=
+            '<style>'+
+            '#ucsSubMenu li:nth-child(2) a:before { content: "\\EA31" !important; '+
+            'font-size: 23px !important; position: absolute; }</style>'
+        profile.insertAdjacentHTML('afterend', css); }}
