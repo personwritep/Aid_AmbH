@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Aid AmbH
 // @namespace        http://tampermonkey.net/
-// @version        4.9
+// @version        5.0
 // @description        「HOME」「ブログ」のリンク動作を改善
 // @author        Ameba blog User
 // @match        https://ameblo.jp/*
@@ -162,6 +162,7 @@ if(location.hostname=='ameblo.jp'){ // 通常のブログページ
                     '#commentsHeader h4 { font: 16px Meiryo !important; } '+
                     '#commentsList { margin: 0; } '+
                     '[data-uranus-component="mainWidgetFooter"] { padding: 0; } '+
+                    '[data-uranus-icon~="hasLabel"] { font-family: "AmebaNewSymbols" !important; } '+
                     '</style>'; }
 
             if(skin_type==1){ // 旧タイプスキン
